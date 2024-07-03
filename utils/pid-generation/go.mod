@@ -1,4 +1,4 @@
-module github.com/vicnetto/active-sybil-attack/utils/pid
+module github.com/vicnetto/active-sybil-attack/utils/pid-generation
 
 go 1.22
 
