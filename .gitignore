@@ -1,0 +1,14 @@
+.idea
+
+# Binary files
+node/sybil/sybil
+node/hydra-sybil/hydra-booster
+utils/pid-generation/pid-generation
+utils/optimize-sybils-kl/optimize-sybils-kl
+utils/k-closest-cpl/k-closest-cpl
+
+# Hydra belly
+node/hydra-sybil/hydra-belly
+
+# Sybils-out file used to instanciate sybils
+sybils-out
