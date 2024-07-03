@@ -1,4 +1,4 @@
-module k-closest-cpl
+module github.com/vicnetto/active-sybil-attack/utils/k-closest-cpl
 
 go 1.22.4
 
