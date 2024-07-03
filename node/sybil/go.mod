@@ -216,6 +216,6 @@ require (
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
 
-replace github.com/libp2p/go-libp2p-kad-dht => ../../utils/go-libp2p-kad-dht-sybil
+replace github.com/libp2p/go-libp2p-kad-dht => ../../lib/go-libp2p-kad-dht-sybil
 
-replace github.com/libp2p/go-libp2p => ../../utils/go-libp2p
+replace github.com/libp2p/go-libp2p => ../../lib/go-libp2p-sybil/

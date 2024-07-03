@@ -211,4 +211,4 @@ require (
 
 go 1.22
 
-replace github.com/libp2p/go-libp2p-kad-dht => ../../utils/go-libp2p-kad-dht-sybil
+replace github.com/libp2p/go-libp2p-kad-dht => ../../lib/go-libp2p-kad-dht-sybil
