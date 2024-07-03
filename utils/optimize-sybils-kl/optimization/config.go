@@ -1,6 +1,6 @@
 package optimization
 
-import "optimization-sybils/probability"
+import "github.com/vicnetto/active-sybil-attack/utils/optimize-sybils-kl/probability"
 
 type Config struct {
 	NodesPerCpl [probability.MaxCplProbabilitySize]int

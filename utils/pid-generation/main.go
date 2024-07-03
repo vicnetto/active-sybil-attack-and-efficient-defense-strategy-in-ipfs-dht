@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"pid/generate"
+	"github.com/vicnetto/active-sybil-attack/utils/pid-generation/generate"
 	"runtime"
 	"strconv"
 )

@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"optimization-sybils/optimization"
-	"optimization-sybils/probability"
+	"github.com/vicnetto/active-sybil-attack/utils/optimize-sybils-kl/optimization"
+	"github.com/vicnetto/active-sybil-attack/utils/optimize-sybils-kl/probability"
 	"os"
 	"strconv"
 )

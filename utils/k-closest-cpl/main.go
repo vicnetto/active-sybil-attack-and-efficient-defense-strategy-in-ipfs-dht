@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	cpl "k-closest-cpl/cpl"
+	"github.com/vicnetto/active-sybil-attack/utils/k-closest-cpl/cpl"
 	"os"
 	"strings"
 	"time"

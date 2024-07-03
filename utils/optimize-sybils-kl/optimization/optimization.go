@@ -2,7 +2,7 @@ package optimization
 
 import (
 	"fmt"
-	"optimization-sybils/probability"
+	"github.com/vicnetto/active-sybil-attack/utils/optimize-sybils-kl/probability"
 )
 
 type Position struct {
