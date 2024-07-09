@@ -35,7 +35,6 @@ type FlagConfig struct {
 func configForSybil(flagConfig FlagConfig) instanciate.PeerConfig {
 	peerConfig := instanciate.PeerConfig{}
 
-	peerConfig.EclipsedCid = flagConfig.eclipsedCid
 	peerConfig.Port = flagConfig.port
 	peerConfig.Ip = flagConfig.ip
 	peerConfig.SybilFilePath = flagConfig.sybilsFilePath
@@ -144,8 +143,7 @@ func main() {
 	fmt.Println("Initializing instantiate with following parameters:")
 	fmt.Println("	- PeerID:", sybilConfig.Identity.PeerID)
 	fmt.Println("	- Port:", sybilConfig.Port)
-	fmt.Println("	- Eclipsed CID:", *sybilConfig.EclipsedCid)
-	fmt.Println("	- Eclipsed CID:", *sybilConfig.EclipsedCid)
+	fmt.Println("	- Eclipsed CID:", *flagConfig.eclipsedCid)
 	fmt.Println("	- Active mode:", *flagConfig.isActive, "\n")
 
 	var otherSybils []multiaddr.Multiaddr

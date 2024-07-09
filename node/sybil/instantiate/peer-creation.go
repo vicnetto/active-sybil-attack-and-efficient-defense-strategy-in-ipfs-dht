@@ -18,11 +18,8 @@ import (
 	"sync"
 )
 
-var DefaultIpfsPort = "4001"
-
 type PeerConfig struct {
 	Port          int
-	EclipsedCid   *string
 	Ip            *string
 	Identity      config.Identity
 	SybilFilePath *string
@@ -110,7 +107,6 @@ func createNode(ctx context.Context, repoPath string) (*core.IpfsNode, error) {
 
 var loadPluginsOnce sync.Once
 
-// Spawns a node to be used just for this run (i.e. creates a tmp repo).
 func SpawnEphemeral(ctx context.Context, peerConfig PeerConfig, otherPeers []multiaddr.Multiaddr) (coreiface.CoreAPI, *core.IpfsNode, error) {
 	var onceErr error
 	loadPluginsOnce.Do(func() {
