@@ -23,6 +23,20 @@ var Kl [][]float64
 
 var startNodesPerCpl [probability.MaxCplProbabilitySize]int
 
+func addClosestSybil(nodesPerCpl [probability.MaxCplProbabilitySize]int) [probability.MaxCplProbabilitySize]int {
+	minCpl, maxCpl := getNewMinAndMaxCpl(nodesPerCpl)
+
+	nodesPerCpl[minCpl] -= 1
+
+	if Kl[maxCpl][nodesPerCpl[maxCpl]+1] < Kl[maxCpl+1][nodesPerCpl[maxCpl+1]+1] {
+		nodesPerCpl[maxCpl] += 1
+	} else {
+		nodesPerCpl[maxCpl+1] += 1
+	}
+
+	return nodesPerCpl
+}
+
 func getSybils(nodesPerCpl [probability.MaxCplProbabilitySize]int) [probability.MaxCplProbabilitySize]int {
 	var sybils [probability.MaxCplProbabilitySize]int
 
@@ -265,13 +279,20 @@ func BeginSybilPositionOptimization() ([probability.MaxCplProbabilitySize]int, e
 	printCpl(Flags.NodesPerCpl)
 	fmt.Println("\nWith the following rules:")
 	fmt.Println("Top:", Flags.Top)
-	fmt.Println("MaxKl:", Flags.MaxKl)
-	fmt.Println("MinScore:", Flags.MinScore)
-	fmt.Println("MinSybils:", Flags.MinSybils, "\n")
+	fmt.Println("Max Kl:", Flags.MaxKl)
+	fmt.Println("Min Score:", Flags.MinScore)
+	fmt.Println("Min Sybils:", Flags.MinSybils)
+	fmt.Println("Closest Node Is Sybil:", Flags.ClosestNodeIsSybil, "\n")
 
 	topScores = make([]Result, Flags.Top)
 
 	startNodesPerCpl = Flags.NodesPerCpl
+	var nodesPerCpl [probability.MaxCplProbabilitySize]int
+	if Flags.ClosestNodeIsSybil {
+		nodesPerCpl = addClosestSybil(Flags.NodesPerCpl)
+	} else {
+		nodesPerCpl = Flags.NodesPerCpl
+	}
 
 	var startMinimumCpl, startMaximumCpl int
 	startMaximumCpl = probability.MaxCplProbabilitySize - 1
@@ -284,7 +305,7 @@ func BeginSybilPositionOptimization() ([probability.MaxCplProbabilitySize]int, e
 
 	for i := Flags.NodesPerCpl[startMaximumCpl]; i < probability.K+1; i++ {
 		position := Position{startMaximumCpl, i, startMinimumCpl, startMaximumCpl, 0}
-		sybilPositionOptimization(position, Flags.NodesPerCpl)
+		sybilPositionOptimization(position, nodesPerCpl)
 	}
 
 	fmt.Printf("> Top %d results:\n", Flags.Top)

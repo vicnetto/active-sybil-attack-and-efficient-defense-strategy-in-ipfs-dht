@@ -31,6 +31,7 @@ func treatFlags() *optimization.Config {
 	flag.Float64Var(&flagConfig.MaxKl, "maxKl", 0.94, "")
 	flag.Float64Var(&flagConfig.MinScore, "minScore", -1, "")
 	flag.IntVar(&flagConfig.MinSybils, "minSybils", -1, "")
+	flag.BoolVar(&flagConfig.ClosestNodeIsSybil, "closestNodeIsSybil", false, "")
 	flag.Parse()
 
 	missingFlag := false
