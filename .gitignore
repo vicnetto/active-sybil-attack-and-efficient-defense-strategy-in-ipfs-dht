@@ -12,3 +12,6 @@ node/hydra-sybil/hydra-belly
 
 # Sybils-out file used to instanciate sybils
 sybils-out
+
+# File normally used to generate random cids
+file
