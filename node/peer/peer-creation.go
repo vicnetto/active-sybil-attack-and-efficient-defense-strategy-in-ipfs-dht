@@ -25,7 +25,7 @@ type Config struct {
 	Identity config.Identity
 }
 
-func configForSybil(ip *string, port int, privateKey string) Config {
+func ConfigForSybil(ip *string, port int, privateKey string) Config {
 	peerConfig := Config{}
 
 	peerConfig.Ip = ip
@@ -52,7 +52,7 @@ func configForSybil(ip *string, port int, privateKey string) Config {
 	return peerConfig
 }
 
-func configForNormalClient(port int) Config {
+func ConfigForNormalClient(port int) Config {
 	// Any IP address
 	ip := "0.0.0.0"
 
