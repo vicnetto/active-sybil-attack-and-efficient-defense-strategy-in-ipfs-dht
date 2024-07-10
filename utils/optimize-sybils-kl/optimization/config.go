@@ -1,9 +1,12 @@
 package optimization
 
-import "github.com/vicnetto/active-sybil-attack/utils/optimize-sybils-kl/probability"
+type CplInformation struct {
+	Reliable int
+	Sybil    int
+}
 
 type Config struct {
-	NodesPerCpl        [probability.MaxCplProbabilitySize]int
+	NodesPerCplMap     map[int]CplInformation
 	Top                int
 	MaxKl              float64
 	MinScore           float64
