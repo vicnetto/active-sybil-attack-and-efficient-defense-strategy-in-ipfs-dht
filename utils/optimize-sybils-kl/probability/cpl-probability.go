@@ -5,7 +5,7 @@ import (
 	"math"
 )
 
-const K = 20
+const K = 4
 const MaxCplProbabilitySize = 40
 const KlThreshold = 0.94
 

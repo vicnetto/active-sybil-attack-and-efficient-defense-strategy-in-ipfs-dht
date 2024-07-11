@@ -2,7 +2,12 @@ package optimization
 
 var topScores []Result
 
-func addScore(result Result) {
+func addScore(score float64, nodesPerCpl map[int]CplInformation, sybilsPerCpl map[int]CplInformation,
+	pathKl float64, minimumCpl int) {
+	sybilsPerCplCopy := createNodesPerCplCopy(sybilsPerCpl)
+	sybilsPerCplCopy[minimumCpl] = nodesPerCpl[minimumCpl]
+
+	result := Result{score: score, kl: pathKl, sybilsPerCpl: sybilsPerCplCopy}
 	position := len(topScores)
 
 	for i := 0; i < len(topScores); i++ {
