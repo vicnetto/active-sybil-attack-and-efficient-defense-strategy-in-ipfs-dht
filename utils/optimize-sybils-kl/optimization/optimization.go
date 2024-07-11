@@ -6,25 +6,27 @@ import (
 )
 
 type Position struct {
-	currentCpl   int
-	currentNodes int
-	minimumCpl   int
-	maximumCpl   int
-	pathKl       float64
+	cpl        int
+	nodesInCpl int
+	nodeCount  int
+	sybils     int
+	minimumCpl int
+	maximumCpl int
+	pathKl     float64
 }
 
 type Result struct {
-	kl          float64
-	score       float64
-	nodesPerCpl [probability.MaxCplProbabilitySize]int
+	Kl           float64
+	Score        float64
+	NodesPerCpl  [probability.MaxCpl]int
+	SybilsPerCpl [probability.MaxCpl]int
 }
 
 var Kl [][]float64
+var startNodesPerCpl [probability.MaxCpl]int
 
-var startNodesPerCpl [probability.MaxCplProbabilitySize]int
-
-func addClosestSybil(nodesPerCpl [probability.MaxCplProbabilitySize]int) [probability.MaxCplProbabilitySize]int {
-	minCpl, maxCpl := getNewMinAndMaxCpl(nodesPerCpl)
+func addClosestSybil(nodesPerCpl [probability.MaxCpl]int) [probability.MaxCpl]int {
+	minCpl, maxCpl := getMinAndMaxCpl(nodesPerCpl)
 
 	nodesPerCpl[minCpl] -= 1
 
@@ -37,75 +39,7 @@ func addClosestSybil(nodesPerCpl [probability.MaxCplProbabilitySize]int) [probab
 	return nodesPerCpl
 }
 
-func getSybils(nodesPerCpl [probability.MaxCplProbabilitySize]int) [probability.MaxCplProbabilitySize]int {
-	var sybils [probability.MaxCplProbabilitySize]int
-
-	for i, quantity := range nodesPerCpl {
-		sybils[i] = sybilInCPL(i, quantity, nodesPerCpl)
-	}
-
-	return sybils
-}
-
-func printCpl(nodesPerCpl [probability.MaxCplProbabilitySize]int) {
-	fmt.Printf("                 ")
-	for i := 0; i < 40; i++ {
-		fmt.Printf("%4d", i)
-	}
-	fmt.Println()
-
-	fmt.Printf("Nodes per CPL : ")
-	fmt.Printf("[")
-	for _, node := range nodesPerCpl {
-		fmt.Printf(" %3d", node)
-	}
-	fmt.Printf(" ]\n")
-}
-
-func printFullInformation(score Result) {
-	// All nodes
-	printCpl(score.nodesPerCpl)
-
-	// Only sybils
-	fmt.Printf("Sybils per CPL: ")
-	fmt.Printf("[")
-	for i, nodesInCpl := range score.nodesPerCpl {
-		fmt.Printf(" %3d", sybilInCPL(i, nodesInCpl, score.nodesPerCpl))
-	}
-	fmt.Printf(" ]\n")
-
-	// Rest of information
-	fmt.Printf("Score: %.2f, Sybils: %d, KL: %f\n", score.score, countTotalSybils(score.nodesPerCpl), score.kl)
-}
-
-func countNodes(nodesPerCpl [probability.MaxCplProbabilitySize]int) int {
-	var nodeCount int
-
-	for _, cpl := range nodesPerCpl {
-		nodeCount += cpl
-	}
-
-	return nodeCount
-}
-
-func countTotalSybils(nodesPerCPL [probability.MaxCplProbabilitySize]int) int {
-	var count int
-
-	for i := 0; i < len(nodesPerCPL); i++ {
-		if count == 0 && nodesPerCPL[i] != 0 {
-			count += nodesPerCPL[i]
-			continue
-		}
-
-		if count != 0 {
-			count += nodesPerCPL[i] - startNodesPerCpl[i]
-		}
-	}
-
-	return count
-}
-
-func getNewMinAndMaxCpl(nodesPerCPL [probability.MaxCplProbabilitySize]int) (int, int) {
+func getMinAndMaxCpl(nodesPerCPL [probability.MaxCpl]int) (int, int) {
 	var minCpl, maxCpl, nodes int
 
 	for i, nodesInCpl := range nodesPerCPL {
@@ -127,22 +61,7 @@ func getNewMinAndMaxCpl(nodesPerCPL [probability.MaxCplProbabilitySize]int) (int
 	return minCpl, maxCpl
 }
 
-func getNewMinCpl(nodesPerCpl [probability.MaxCplProbabilitySize]int) int {
-	var newMinCpl int
-
-	for i := 0; i < len(nodesPerCpl); i++ {
-		if nodesPerCpl[i] != 0 {
-			newMinCpl = i
-			break
-		}
-	}
-
-	return newMinCpl
-}
-
-func sybilInCPL(cpl int, currentNodesInCpl int, nodesPerCpl [probability.MaxCplProbabilitySize]int) int {
-	minCpl := getNewMinCpl(nodesPerCpl)
-
+func sybilInCPL(cpl int, currentNodesInCpl int, minCpl int) int {
 	if cpl < minCpl {
 		return 0
 	}
@@ -154,44 +73,37 @@ func sybilInCPL(cpl int, currentNodesInCpl int, nodesPerCpl [probability.MaxCplP
 	return currentNodesInCpl - startNodesPerCpl[cpl]
 }
 
-func scoreCountTotal(pathKl float64, nodesPerCpl [probability.MaxCplProbabilitySize]int) float64 {
-	_, _ = getNewMinAndMaxCpl(startNodesPerCpl)
-	newMinCpl, newMaxCpl := getNewMinAndMaxCpl(nodesPerCpl)
+func scoreCountTotal(nodesPerCpl [probability.MaxCpl]int, position Position) float64 {
 	score := float64(0)
 
-	// currentTotalNodes := 0
-
-	for cpl := newMinCpl; cpl <= newMaxCpl; cpl++ {
-		// if nodesPerCpl[cpl] == 0 && cpl > oldMaxCpl && cpl < newMaxCpl {
-		// 	score = 0
-		// 	continue
-		// }
-
-		sybilInCpl := sybilInCPL(cpl, nodesPerCpl[cpl], nodesPerCpl)
-		// reliableInCpl := nodesPerCpl[cpl] - sybilInCpl
-		// currentTotalNodes += reliableInCpl
+	for cpl := position.minimumCpl; cpl <= position.maximumCpl; cpl++ {
+		sybilInCpl := sybilInCPL(cpl, nodesPerCpl[cpl], position.minimumCpl)
 		score += float64(cpl) * float64(sybilInCpl)
 	}
-
-	// score *= float64(countTotalSybils(nodesPerCpl))
 
 	return score
 }
 
-func removeFromCpl(nodesPerCpl [probability.MaxCplProbabilitySize]int, quantity int, position Position) (bool, Position, [probability.MaxCplProbabilitySize]int) {
+func removeFromCpl(nodesPerCpl [probability.MaxCpl]int, quantity int, position Position) (bool, Position, [probability.MaxCpl]int) {
 	nodesPerCplWithoutChanges := nodesPerCpl
-	newMinCpl := getNewMinCpl(nodesPerCpl)
 
-	if position.currentCpl == newMinCpl {
+	if position.cpl == position.minimumCpl {
 		return true, position, nodesPerCpl
 	}
 
-	for i := newMinCpl; i < len(nodesPerCpl); i++ {
-		if position.currentCpl == i {
+	for i := position.minimumCpl; i < len(nodesPerCpl); i++ {
+		if position.cpl <= i {
 			return false, position, nodesPerCplWithoutChanges
 		}
 
 		if nodesPerCpl[i] >= quantity {
+			// Update minimum CPL according where the nodes are being removed
+			if nodesPerCpl[i] > quantity {
+				position.minimumCpl = i
+			} else {
+				position.minimumCpl = i + 1
+			}
+
 			nodesPerCpl[i] -= quantity
 
 			return true, position, nodesPerCpl
@@ -206,66 +118,67 @@ func removeFromCpl(nodesPerCpl [probability.MaxCplProbabilitySize]int, quantity 
 	return false, position, nodesPerCpl
 }
 
-func sybilPositionOptimization(position Position, nodesPerCpl [probability.MaxCplProbabilitySize]int) {
-	// fmt.Println(position.currentCpl, position.currentNodes, position.maximumCpl, position.minimumCpl, countNodes(nodesPerCpl))
-	position.pathKl += Kl[position.currentCpl][position.currentNodes]
+func sybilPositionOptimization(optimizationFlags Config, position Position, nodesPerCpl [probability.MaxCpl]int) {
+	position.pathKl += Kl[position.cpl][position.nodesInCpl]
 
-	// If current kl is greater than our threshold we don't continue
+	// If current Kl is greater than our threshold we don't continue
 	if position.pathKl >= probability.KlThreshold {
 		return
 	}
 
 	// Try to remove actual reliable nodes to add sybils
-	if position.currentNodes != 0 {
+	if position.nodesInCpl != 0 {
 		var ok bool
-		sybilsInThisCpl := sybilInCPL(position.currentCpl, position.currentNodes, nodesPerCpl)
+		sybilsInThisCpl := sybilInCPL(position.cpl, position.nodesInCpl, position.minimumCpl)
 
 		ok, position, nodesPerCpl = removeFromCpl(nodesPerCpl, sybilsInThisCpl, position)
 		if !ok {
-			// return nodesPerCpl, -1, position.pathKl
 			return
 		}
 
-		nodesPerCpl[position.currentCpl] = position.currentNodes
+		// If first CPL with nodes, we should set the maximum CPL.
+		if position.maximumCpl == 0 {
+			position.minimumCpl = position.cpl
+		}
+
+		nodesPerCpl[position.cpl] = position.nodesInCpl
+		position.nodeCount += position.nodesInCpl
+
+		if position.cpl != position.minimumCpl {
+			position.sybils += position.nodesInCpl - startNodesPerCpl[position.cpl]
+		}
 	}
 
 	// If we arrived at the last cpl, we should stop
-	if position.currentCpl == position.minimumCpl {
-		// Possible result
-		if countNodes(nodesPerCpl) == probability.K {
-			score := scoreCountTotal(position.pathKl, nodesPerCpl)
+	if position.cpl == position.minimumCpl {
+		position.sybils += nodesPerCpl[position.cpl]
 
-			if score > topScores[Flags.Top-1].score && position.pathKl < Flags.MaxKl &&
-				score >= Flags.MinScore && countTotalSybils(nodesPerCpl) >= Flags.MinSybils {
-				addScore(Result{kl: position.pathKl, score: score, nodesPerCpl: nodesPerCpl})
+		if position.nodeCount == probability.K {
+			score := scoreCountTotal(nodesPerCpl, position)
+
+			if score > topScores[optimizationFlags.Top-1].Score && position.pathKl < optimizationFlags.MaxKl &&
+				score >= optimizationFlags.MinScore && position.sybils >= optimizationFlags.MinSybils {
+				addScore(Result{Kl: position.pathKl, Score: score, NodesPerCpl: nodesPerCpl})
 			}
 
 			return
 		} else {
-			//return nodesPerCpl, -1, position.pathKl
 			return
 		}
 	}
 
-	if countNodes(nodesPerCpl) > probability.K {
+	if position.nodeCount > probability.K {
 		return
 	}
-	// fmt.Println(position.currentCpl, position.currentNodes, position.maximumCpl, position.minimumCpl, countNodes(nodesPerCpl))
 
-	position.currentCpl--
-
-	// if nodesPerCpl[21] == 1 && nodesPerCpl[20] == 1 && nodesPerCpl[15] == 1 && nodesPerCpl[14] == 1 && nodesPerCpl[13] == 1 && nodesPerCpl[12] == 3 && nodesPerCpl[11] == 7 {
-	// 	if position.currentCpl == 11 {
-	// 		fmt.Printf("")
-	// 	}
-	// }
+	position.cpl--
 
 	// Recall function through the entire array with a cpl-1
-	for j := nodesPerCpl[position.currentCpl]; j <= probability.K; j++ {
-		if Kl[position.currentCpl][j] < probability.KlThreshold {
-			position.currentNodes = j
+	for j := nodesPerCpl[position.cpl]; j <= probability.K; j++ {
+		if Kl[position.cpl][j] < probability.KlThreshold {
+			position.nodesInCpl = j
 
-			sybilPositionOptimization(position, nodesPerCpl)
+			sybilPositionOptimization(optimizationFlags, position, nodesPerCpl)
 		} else {
 			break
 		}
@@ -274,51 +187,44 @@ func sybilPositionOptimization(position Position, nodesPerCpl [probability.MaxCp
 	return
 }
 
-func BeginSybilPositionOptimization() ([probability.MaxCplProbabilitySize]int, error) {
-	fmt.Println("Optimizing the sybils in the following peers configuration:")
-	printCpl(Flags.NodesPerCpl)
-	fmt.Println("\nWith the following rules:")
-	fmt.Println("Top:", Flags.Top)
-	fmt.Println("Max Kl:", Flags.MaxKl)
-	fmt.Println("Min Score:", Flags.MinScore)
-	fmt.Println("Min Sybils:", Flags.MinSybils)
-	fmt.Println("Closest Node Is Sybil:", Flags.ClosestNodeIsSybil, "\n")
+func BeginSybilPositionOptimization(optimizationFlags Config) ([]Result, error) {
+	probabilities := probability.GetCplProbability()
+	Kl = probability.GetAllPartialKl(probabilities, true)
 
-	topScores = make([]Result, Flags.Top)
+	topScores = make([]Result, optimizationFlags.Top)
 
-	startNodesPerCpl = Flags.NodesPerCpl
-	var nodesPerCpl [probability.MaxCplProbabilitySize]int
-	if Flags.ClosestNodeIsSybil {
-		nodesPerCpl = addClosestSybil(Flags.NodesPerCpl)
+	startNodesPerCpl = optimizationFlags.NodesPerCpl
+
+	var nodesPerCpl [probability.MaxCpl]int
+	if optimizationFlags.ClosestNodeIsSybil {
+		nodesPerCpl = addClosestSybil(optimizationFlags.NodesPerCpl)
 	} else {
-		nodesPerCpl = Flags.NodesPerCpl
+		nodesPerCpl = optimizationFlags.NodesPerCpl
 	}
 
 	var startMinimumCpl, startMaximumCpl int
-	startMaximumCpl = probability.MaxCplProbabilitySize - 1
+	startMaximumCpl = probability.MaxCpl - 1
 
-	for i, cpl := range Flags.NodesPerCpl {
+	for i, cpl := range optimizationFlags.NodesPerCpl {
 		if cpl != 0 && startMinimumCpl == 0 {
-			startMinimumCpl = i - 1
+			startMinimumCpl = i
 		}
 	}
 
-	for i := Flags.NodesPerCpl[startMaximumCpl]; i < probability.K+1; i++ {
-		position := Position{startMaximumCpl, i, startMinimumCpl, startMaximumCpl, 0}
-		sybilPositionOptimization(position, nodesPerCpl)
-	}
-
-	fmt.Printf("> Top %d results:\n", Flags.Top)
-	for i, score := range topScores {
-		if score.score != 0 {
-			fmt.Printf("\nResult %d)\n", i+1)
-			printFullInformation(score)
-		}
+	for i := optimizationFlags.NodesPerCpl[startMaximumCpl]; i < probability.K+1; i++ {
+		position := Position{startMaximumCpl, i, 0, 0, startMinimumCpl, startMaximumCpl, 0}
+		sybilPositionOptimization(optimizationFlags, position, nodesPerCpl)
 	}
 
 	if len(topScores) != 0 {
-		return getSybils(topScores[0].nodesPerCpl), nil
+		for i, score := range topScores {
+			if score.Score != 0 {
+				topScores[i].SybilsPerCpl = getSybils(score.NodesPerCpl)
+			}
+		}
+
+		return topScores, nil
 	} else {
-		return [probability.MaxCplProbabilitySize]int{}, fmt.Errorf("no optmization available following the parameters")
+		return nil, fmt.Errorf("no optmization available following the parameters")
 	}
 }

@@ -24,7 +24,7 @@ func treatFlags() *optimization.Config {
 	flagConfig := optimization.Config{}
 	flag.Usage = help()
 
-	for i := 0; i < probability.MaxCplProbabilitySize; i++ {
+	for i := 0; i < probability.MaxCpl; i++ {
 		flag.IntVar(&flagConfig.NodesPerCpl[i], strconv.Itoa(i), 0, "")
 	}
 	flag.IntVar(&flagConfig.Top, "top", 5, "")
@@ -37,7 +37,7 @@ func treatFlags() *optimization.Config {
 	missingFlag := false
 
 	var countAllNodes int
-	for i := 0; i < probability.MaxCplProbabilitySize; i++ {
+	for i := 0; i < probability.MaxCpl; i++ {
 		countAllNodes += flagConfig.NodesPerCpl[i]
 	}
 	if countAllNodes != probability.K {
@@ -55,16 +55,29 @@ func treatFlags() *optimization.Config {
 }
 
 func main() {
-	optimization.Flags = treatFlags()
+	optimizationFlags := treatFlags()
 
-	probabilities := probability.GetCplProbability()
+	fmt.Println("Optimizing the sybils in the following peers configuration:")
+	optimization.PrintCpl(optimizationFlags.NodesPerCpl)
+	fmt.Println("\nWith the following rules:")
+	fmt.Println("Top:", optimizationFlags.Top)
+	fmt.Println("Max Kl:", optimizationFlags.MaxKl)
+	fmt.Println("Min Score:", optimizationFlags.MinScore)
+	fmt.Println("Min Sybils:", optimizationFlags.MinSybils)
+	fmt.Println("Closest Node Is Sybil:", optimizationFlags.ClosestNodeIsSybil, "\n")
 
-	optimization.Kl = probability.GetAllPartialKl(probabilities)
-	probability.PrintPartialKl(optimization.Kl)
-
-	_, err := optimization.BeginSybilPositionOptimization()
+	top, err := optimization.BeginSybilPositionOptimization(*optimizationFlags)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
+	fmt.Printf("> Top %d results:\n", optimizationFlags.Top)
+	for i, score := range top {
+		if score.Score != 0 {
+			fmt.Printf("\nResult %d)\n", i+1)
+			optimization.PrintFullInformation(score)
+		}
+	}
+
 }

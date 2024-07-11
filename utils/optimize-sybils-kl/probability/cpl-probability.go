@@ -6,11 +6,11 @@ import (
 )
 
 const K = 20
-const MaxCplProbabilitySize = 40
+const MaxCpl = 40
 const KlThreshold = 0.94
 
 func GetCplProbability() []float64 {
-	cplProbability := make([]float64, MaxCplProbabilitySize)
+	cplProbability := make([]float64, MaxCpl)
 
 	cplProbability[0] = 0
 	cplProbability[1] = 0
@@ -56,15 +56,15 @@ func GetCplProbability() []float64 {
 	return cplProbability
 }
 
-func GetAllPartialKl(probabilities []float64) [][]float64 {
+func GetAllPartialKl(probabilities []float64, print bool) [][]float64 {
 	var allPartialKl [][]float64
 
-	allPartialKl = make([][]float64, MaxCplProbabilitySize)
-	for i := 0; i < MaxCplProbabilitySize; i++ {
+	allPartialKl = make([][]float64, MaxCpl)
+	for i := 0; i < MaxCpl; i++ {
 		allPartialKl[i] = make([]float64, K+1)
 	}
 
-	for i := 0; i < MaxCplProbabilitySize; i++ {
+	for i := 0; i < MaxCpl; i++ {
 		for j := 0; j <= K; j++ {
 			prob := float64(j) / 20
 			partialKl := prob * math.Log(prob/probabilities[i])
@@ -77,6 +77,10 @@ func GetAllPartialKl(probabilities []float64) [][]float64 {
 		}
 	}
 
+	if print {
+		PrintPartialKl(allPartialKl)
+	}
+
 	return allPartialKl
 }
 
@@ -87,7 +91,7 @@ func PrintPartialKl(kl [][]float64) {
 		fmt.Printf("%7d", i)
 	}
 
-	for i := 0; i < MaxCplProbabilitySize; i++ {
+	for i := 0; i < MaxCpl; i++ {
 		fmt.Printf("\n     CPL %.2d)  ", i)
 
 		for j := 0; j <= K; j++ {
