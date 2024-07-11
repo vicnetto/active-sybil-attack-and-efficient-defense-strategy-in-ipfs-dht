@@ -12,11 +12,11 @@ import (
 func help() func() {
 	return func() {
 		fmt.Println("Usage of", os.Args[0], "[flags]:")
-		fmt.Println("	-[0-keySize=256] <int> -- Number of nodes in a specific CPL")
-		fmt.Println("	-top <int>             -- Number of top results to display (default: 5)")
-		fmt.Println("	-maxKl <float>         -- Maximum KL value of the result (default/max: 0.94)")
-		fmt.Println("	-minScore <float>      -- Minimum score (default: -1)")
-		fmt.Println("	-minSybils <int>       -- Minimum number of sybils (default: -1)")
+		fmt.Printf("	-[0-%d] <int>      -- Number of nodes in a specific CPL\n", probability.MaxCpl-1)
+		fmt.Println("	-top <int>         -- Number of top results to display (default: 5)")
+		fmt.Println("	-maxKl <float>     -- Maximum KL value of the result (default/max: 0.94)")
+		fmt.Println("	-minScore <float>  -- Minimum score (default: -1)")
+		fmt.Println("	-minSybils <int>   -- Minimum number of sybils (default: -1)")
 	}
 }
 
