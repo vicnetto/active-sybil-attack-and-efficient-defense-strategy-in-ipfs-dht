@@ -72,6 +72,8 @@ func main() {
 		return
 	}
 
+	probability.PrintPartialKl(optimization.Kl)
+
 	fmt.Printf("> Top %d results:\n", optimizationFlags.Top)
 	for i, score := range top {
 		if score.Score != 0 {

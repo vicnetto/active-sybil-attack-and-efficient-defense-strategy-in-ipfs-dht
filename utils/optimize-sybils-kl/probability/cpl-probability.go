@@ -56,7 +56,7 @@ func GetCplProbability() []float64 {
 	return cplProbability
 }
 
-func GetAllPartialKl(probabilities []float64, print bool) [][]float64 {
+func GetAllPartialKl(probabilities []float64) [][]float64 {
 	var allPartialKl [][]float64
 
 	allPartialKl = make([][]float64, MaxCpl)
@@ -75,10 +75,6 @@ func GetAllPartialKl(probabilities []float64, print bool) [][]float64 {
 
 			allPartialKl[i][j] = partialKl
 		}
-	}
-
-	if print {
-		PrintPartialKl(allPartialKl)
 	}
 
 	return allPartialKl
@@ -104,5 +100,6 @@ func PrintPartialKl(kl [][]float64) {
 			}
 		}
 	}
+
 	fmt.Printf("\n\n")
 }
