@@ -10,3 +10,16 @@ type Config struct {
 	MinSybils          int
 	ClosestNodeIsSybil bool
 }
+
+func defaultConfig(nodesPerCpl [probability.MaxCpl]int) Config {
+	config := Config{}
+
+	config.NodesPerCpl = nodesPerCpl
+	config.Top = 5
+	config.MaxKl = probability.KlThreshold
+	config.MinScore = -1
+	config.MinSybils = -1
+	config.ClosestNodeIsSybil = false
+
+	return config
+}
