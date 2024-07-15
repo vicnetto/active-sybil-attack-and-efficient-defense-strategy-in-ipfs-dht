@@ -157,7 +157,9 @@ func sybilPositionOptimization(optimizationFlags Config, position Position, node
 			score := scoreCountTotal(nodesPerCpl, position)
 
 			if score > topScores[optimizationFlags.Top-1].Score && position.pathKl < optimizationFlags.MaxKl &&
-				score >= optimizationFlags.MinScore && position.sybils >= optimizationFlags.MinSybils {
+				score >= optimizationFlags.MinScore && position.pathKl >= optimizationFlags.MinKl &&
+				position.sybils >= optimizationFlags.MinSybils {
+
 				addScore(Result{Kl: position.pathKl, Score: score, NodesPerCpl: nodesPerCpl})
 			}
 

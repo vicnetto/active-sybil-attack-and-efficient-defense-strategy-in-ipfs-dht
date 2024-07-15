@@ -15,6 +15,7 @@ func help() func() {
 		fmt.Printf("	-[0-%d] <int>      -- Number of nodes in a specific CPL\n", probability.MaxCpl-1)
 		fmt.Println("	-top <int>         -- Number of top results to display (default: 5)")
 		fmt.Println("	-maxKl <float>     -- Maximum KL value of the result (default/max: 0.94)")
+		fmt.Println("	-minKl <float>     -- Minimum KL value of the result (default: -1)")
 		fmt.Println("	-minScore <float>  -- Minimum score (default: -1)")
 		fmt.Println("	-minSybils <int>   -- Minimum number of sybils (default: -1)")
 	}
@@ -29,6 +30,7 @@ func treatFlags() *optimization.Config {
 	}
 	flag.IntVar(&flagConfig.Top, "top", 5, "")
 	flag.Float64Var(&flagConfig.MaxKl, "maxKl", 0.94, "")
+	flag.Float64Var(&flagConfig.MinKl, "minKl", -1, "")
 	flag.Float64Var(&flagConfig.MinScore, "minScore", -1, "")
 	flag.IntVar(&flagConfig.MinSybils, "minSybils", -1, "")
 	flag.BoolVar(&flagConfig.ClosestNodeIsSybil, "closestNodeIsSybil", false, "")

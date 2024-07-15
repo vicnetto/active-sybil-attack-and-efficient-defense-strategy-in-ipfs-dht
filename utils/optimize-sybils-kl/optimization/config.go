@@ -9,6 +9,7 @@ type Config struct {
 	NodesPerCpl        [probability.MaxCpl]int
 	Top                int
 	MaxKl              float64
+	MinKl              float64
 	MinScore           float64
 	MinSybils          int
 	ClosestNodeIsSybil bool
