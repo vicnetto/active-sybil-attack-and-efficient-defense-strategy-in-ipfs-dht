@@ -3,6 +3,8 @@ package optimization
 import (
 	"fmt"
 	"github.com/vicnetto/active-sybil-attack/utils/optimize-sybils-kl/probability"
+	"reflect"
+	"strings"
 )
 
 var topScores []Result
@@ -39,32 +41,49 @@ func getSybils(nodesPerCpl [probability.MaxCpl]int) [probability.MaxCpl]int {
 	return sybils
 }
 
-func PrintCpl(nodesPerCpl [probability.MaxCpl]int) {
-	fmt.Printf("                 ")
-	for i := 0; i < 40; i++ {
-		fmt.Printf("%4d", i)
-	}
-	fmt.Println()
+func PrintUsefulCpl(nodesPerCpl interface{}, nodeType string) {
+	var minCpl, maxCpl int
+	nodes := reflect.ValueOf(nodesPerCpl)
 
-	fmt.Printf("Nodes per CPL : ")
-	fmt.Printf("[")
-	for _, node := range nodesPerCpl {
-		fmt.Printf(" %3d", node)
+	label := nodeType + " per CPL: "
+
+	if nodes.Kind() == reflect.Slice || nodes.Kind() == reflect.Array {
+		var count int64
+
+		for i := 0; i < nodes.Len(); i++ {
+			if count == 0 && nodes.Index(i).Int() != 0 {
+				minCpl = i
+			}
+
+			if nodes.Index(i).Int() != 0 {
+				maxCpl = i
+			}
+
+			count += nodes.Index(i).Int()
+		}
+
+		fmt.Print(strings.Repeat(" ", len(label)) + " ")
+		for i := minCpl; i <= maxCpl; i++ {
+			fmt.Printf("%4d", i)
+		}
+		fmt.Println()
+
+		fmt.Printf(label)
+		fmt.Printf("[")
+		for i := minCpl; i <= maxCpl; i++ {
+			fmt.Printf(" %3d", nodes.Index(i).Int())
+		}
+		fmt.Printf(" ]\n")
 	}
-	fmt.Printf(" ]\n")
 }
 
 func PrintFullInformation(score Result) {
 	// All nodes
-	PrintCpl(score.NodesPerCpl)
+	PrintUsefulCpl(score.NodesPerCpl, "Nodes")
 
 	// Only sybils
-	fmt.Printf("Sybils per CPL: ")
-	fmt.Printf("[")
-	for _, sybilsInCpl := range score.SybilsPerCpl {
-		fmt.Printf(" %3d", sybilsInCpl)
-	}
-	fmt.Printf(" ]\n")
+	PrintUsefulCpl(score.SybilsPerCpl, "Sybil")
+	fmt.Println()
 
 	totalSybils := 0
 	for _, sybilsInCpl := range score.SybilsPerCpl {
