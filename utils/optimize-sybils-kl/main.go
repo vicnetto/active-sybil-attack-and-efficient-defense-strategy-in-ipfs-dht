@@ -12,12 +12,13 @@ import (
 func help() func() {
 	return func() {
 		fmt.Println("Usage of", os.Args[0], "[flags]:")
-		fmt.Printf("	-[0-%d] <int>      -- Number of nodes in a specific CPL\n", probability.MaxCpl-1)
-		fmt.Println("	-top <int>         -- Number of top results to display (default: 5)")
-		fmt.Println("	-maxKl <float>     -- Maximum KL value of the result (default/max: 0.94)")
-		fmt.Println("	-minKl <float>     -- Minimum KL value of the result (default: -1)")
-		fmt.Println("	-minScore <float>  -- Minimum score (default: -1)")
-		fmt.Println("	-minSybils <int>   -- Minimum number of sybils (default: -1)")
+		fmt.Printf("	-[0-%d] <int>               -- Number of nodes in a specific CPL\n", probability.MaxCpl-1)
+		fmt.Println("	-top <int>                  -- Number of top results to display (default: 5)")
+		fmt.Println("	-maxKl <float>              -- Maximum KL value of the result (default/max: 0.94)")
+		fmt.Println("	-minKl <float>              -- Minimum KL value of the result (default: -1)")
+		fmt.Println("	-minScore <float>           -- Minimum score (default: -1)")
+		fmt.Println("	-minSybils <int>            -- Minimum number of sybils (default: -1)")
+		fmt.Println("	-closestNodeIsSybil <bool>  -- Closest node to CID must be a sybil (default: false)")
 	}
 }
 
@@ -59,8 +60,8 @@ func treatFlags() *optimization.Config {
 func main() {
 	optimizationFlags := treatFlags()
 
-	fmt.Println("Optimizing the sybils in the following peers configuration:")
-	optimization.PrintCpl(optimizationFlags.NodesPerCpl)
+	fmt.Println("Optimizing the sybils in the following peers configuration:\n")
+	optimization.PrintUsefulCpl(optimizationFlags.NodesPerCpl, "Initial nodes")
 	fmt.Println("\nWith the following rules:")
 	fmt.Println("Top:", optimizationFlags.Top)
 	fmt.Println("Max Kl:", optimizationFlags.MaxKl)
