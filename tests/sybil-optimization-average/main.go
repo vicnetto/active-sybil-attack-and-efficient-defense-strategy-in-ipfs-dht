@@ -90,7 +90,7 @@ func optimizeSybilPositioning(inCpl []int) (optimization.Result, int, error) {
 		return optimization.Result{}, 0, err
 	}
 
-	optimizationConfig.MaxKl = 0.75
+	optimizationConfig.MaxKl = 0.85
 
 	fmt.Println("\nPositioning sybils in the following distribution:")
 	PrintUsefulCpl(optimizationConfig.NodesPerCpl)

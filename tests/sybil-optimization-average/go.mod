@@ -5,9 +5,10 @@ go 1.22.4
 require (
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/kubo v0.28.0
+	github.com/libp2p/go-libp2p v0.35.2
 	github.com/vicnetto/active-sybil-attack/node/peer v0.0.0-20240709142726-a02e65246274
 	github.com/vicnetto/active-sybil-attack/utils/k-closest-cpl v0.0.0-20240709142726-a02e65246274
-	github.com/vicnetto/active-sybil-attack/utils/optimize-sybils-kl v0.0.0-20240711180817-a814b25ac248
+	github.com/vicnetto/active-sybil-attack/utils/optimize-sybils-kl v0.0.0-20240717092708-1083a666576e
 )
 
 require (
@@ -104,7 +105,6 @@ require (
 	github.com/libp2p/go-cidranger v1.1.0 // indirect
 	github.com/libp2p/go-doh-resolver v0.4.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.1.0 // indirect
-	github.com/libp2p/go-libp2p v0.35.2 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
 	github.com/libp2p/go-libp2p-kad-dht v0.25.2 // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.6.3 // indirect

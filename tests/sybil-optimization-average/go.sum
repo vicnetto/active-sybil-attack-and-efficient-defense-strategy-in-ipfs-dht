@@ -747,8 +747,8 @@ github.com/vicnetto/active-sybil-attack/node/peer v0.0.0-20240709142726-a02e6524
 github.com/vicnetto/active-sybil-attack/node/peer v0.0.0-20240709142726-a02e65246274/go.mod h1:KUfZ5doJd2prA8gscwzXdQq36k0D2PKUu+g1cEWAEAs=
 github.com/vicnetto/active-sybil-attack/utils/k-closest-cpl v0.0.0-20240709142726-a02e65246274 h1:h1cpyolv3km4pBlaMK3rGSVKncNtCQmKI9yiczKVUTs=
 github.com/vicnetto/active-sybil-attack/utils/k-closest-cpl v0.0.0-20240709142726-a02e65246274/go.mod h1:Qy7IboDhih9jDFKqwOEwaax0f2Teg4TZ80CoXhAJiHA=
-github.com/vicnetto/active-sybil-attack/utils/optimize-sybils-kl v0.0.0-20240711180817-a814b25ac248 h1:OW/N6Le1HW2qPQ7Owmzgn9PETJVucMAPdB1ZG+ynWmI=
-github.com/vicnetto/active-sybil-attack/utils/optimize-sybils-kl v0.0.0-20240711180817-a814b25ac248/go.mod h1:LtXzMq8kKiiN4qmReMzHIPGVD4qNcKZe9XhT75Pqm68=
+github.com/vicnetto/active-sybil-attack/utils/optimize-sybils-kl v0.0.0-20240717092708-1083a666576e h1:RdC4EN4DjnTRM9V0Ju0KWaI3aI42gc9ZGXjvUzik/08=
+github.com/vicnetto/active-sybil-attack/utils/optimize-sybils-kl v0.0.0-20240717092708-1083a666576e/go.mod h1:LtXzMq8kKiiN4qmReMzHIPGVD4qNcKZe9XhT75Pqm68=
 github.com/wangjia184/sortedset v0.0.0-20160527075905-f5d03557ba30/go.mod h1:YkocrP2K2tcw938x9gCOmT5G5eCD6jsTz0SZuyAqwIE=
 github.com/warpfork/go-testmark v0.3.0/go.mod h1:jhEf8FVxd+F17juRubpmut64NEG6I2rgkUhlcqqXwE0=
 github.com/warpfork/go-testmark v0.9.0/go.mod h1:jhEf8FVxd+F17juRubpmut64NEG6I2rgkUhlcqqXwE0=
