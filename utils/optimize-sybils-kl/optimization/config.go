@@ -13,6 +13,7 @@ type Config struct {
 	MinScore           float64
 	MinSybils          int
 	ClosestNodeIsSybil bool
+	NetworkSize        int
 }
 
 func DefaultConfig(nodesPerCpl []int) (Config, error) {

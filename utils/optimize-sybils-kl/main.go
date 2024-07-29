@@ -14,7 +14,8 @@ func help() func() {
 		fmt.Println("Usage of", os.Args[0], "[flags]:")
 		fmt.Printf("	-[0-%d] <int>               -- Number of nodes in a specific CPL\n", probability.MaxCpl-1)
 		fmt.Println("	-top <int>                  -- Number of top results to display (default: 5)")
-		fmt.Println("	-maxKl <float>              -- Maximum KL value of the result (default/max: 0.94)")
+		fmt.Printf("   -networkSize <int>          -- Network size to estimate the distribution (default: %d)\n", probability.DefaultNetworkSize)
+		fmt.Printf("	-maxKl <float>              -- Maximum KL value of the result (default/max: %f)", probability.KlThreshold)
 		fmt.Println("	-minKl <float>              -- Minimum KL value of the result (default: -1)")
 		fmt.Println("	-minScore <float>           -- Minimum score (default: -1)")
 		fmt.Println("	-minSybils <int>            -- Minimum number of sybils (default: -1)")
@@ -33,6 +34,7 @@ func treatFlags() *optimization.Config {
 	flag.Float64Var(&flagConfig.MaxKl, "maxKl", 0.94, "")
 	flag.Float64Var(&flagConfig.MinKl, "minKl", -1, "")
 	flag.Float64Var(&flagConfig.MinScore, "minScore", -1, "")
+	flag.IntVar(&flagConfig.NetworkSize, "networkSize", probability.DefaultNetworkSize, "")
 	flag.IntVar(&flagConfig.MinSybils, "minSybils", -1, "")
 	flag.BoolVar(&flagConfig.ClosestNodeIsSybil, "closestNodeIsSybil", false, "")
 	flag.Parse()
@@ -67,7 +69,8 @@ func main() {
 	fmt.Println("Max Kl:", optimizationFlags.MaxKl)
 	fmt.Println("Min Score:", optimizationFlags.MinScore)
 	fmt.Println("Min Sybils:", optimizationFlags.MinSybils)
-	fmt.Println("Closest Node Is Sybil:", optimizationFlags.ClosestNodeIsSybil, "\n")
+	fmt.Println("Closest Node Is Sybil:", optimizationFlags.ClosestNodeIsSybil)
+	fmt.Println("Network Size:", optimizationFlags.NetworkSize, "\n")
 
 	top, err := optimization.BeginSybilPositionOptimization(*optimizationFlags)
 	if err != nil {

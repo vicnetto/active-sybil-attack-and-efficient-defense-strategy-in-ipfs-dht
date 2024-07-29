@@ -190,7 +190,7 @@ func sybilPositionOptimization(optimizationFlags Config, position Position, node
 }
 
 func BeginSybilPositionOptimization(optimizationFlags Config) ([]Result, error) {
-	probabilities := probability.GetCplProbability()
+	probabilities := probability.GetCplProbability(optimizationFlags.NetworkSize)
 	Kl = probability.GetAllPartialKl(probabilities)
 
 	topScores = make([]Result, optimizationFlags.Top)
