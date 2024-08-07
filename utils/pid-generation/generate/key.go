@@ -11,13 +11,34 @@ import (
 	"math/big"
 	"os"
 	"sync"
+	"sync/atomic"
 )
 
 type KeyInfo struct {
+	tries             int
 	peerId            string
 	peerKey           kspace.Key
 	peerDistance      *big.Int
 	marshalPrivateKey string
+}
+
+type WaitGroupCount struct {
+	sync.WaitGroup
+	count int64
+}
+
+func (wg *WaitGroupCount) Add(delta int) {
+	atomic.AddInt64(&wg.count, int64(delta))
+	wg.WaitGroup.Add(delta)
+}
+
+func (wg *WaitGroupCount) Done() {
+	atomic.AddInt64(&wg.count, -1)
+	wg.WaitGroup.Done()
+}
+
+func (wg *WaitGroupCount) GetCount() int {
+	return int(atomic.LoadInt64(&wg.count))
 }
 
 func generateNewKey(targetCIDKey kspace.Key) (KeyInfo, error) {
@@ -50,7 +71,7 @@ func generateNewKey(targetCIDKey kspace.Key) (KeyInfo, error) {
 }
 
 func GenerateValidKey(pidGenerateConfig PidGenerateConfig, interval Interval, targetCidKey kspace.Key, quit <-chan bool,
-	result chan<- KeyInfo, wg *sync.WaitGroup) {
+	result chan<- KeyInfo, wg *WaitGroupCount, found *int32) {
 	tries := 0
 
 	for {
@@ -80,12 +101,15 @@ func GenerateValidKey(pidGenerateConfig PidGenerateConfig, interval Interval, ta
 			}
 
 			if good {
-				fmt.Printf("Found in: %d tries\n\tDistance: %d\n\tSybil PeerID: %s\n\tSybil Private Key: %s\n",
-					tries, key.peerDistance, key.peerId, key.marshalPrivateKey)
+				if int(*found) != pidGenerateConfig.Quantity {
+					atomic.AddInt32(found, 1)
 
-				result <- key
-				wg.Done()
-				return
+					key.tries = tries
+					result <- key
+					wg.Done()
+
+					return
+				}
 			}
 		}
 	}

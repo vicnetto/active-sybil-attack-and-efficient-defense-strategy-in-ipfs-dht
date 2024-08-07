@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"sync"
 	"time"
 
 	gocid "github.com/ipfs/go-cid"
@@ -97,49 +96,49 @@ func generateKeysInMultipleCpus(pidGenerateConfig PidGenerateConfig, numberCpu i
 	var peerId []string
 	var privateKey []string
 
-	wg := &sync.WaitGroup{}
+	wgCount := &WaitGroupCount{}
 	quit := make(chan bool)
 	result := make(chan KeyInfo)
 	availableCpu := numberCpu
-	found := 0
+	var foundRoutine int32
 
 	start := time.Now()
 	for i := 0; i < pidGenerateConfig.Quantity; i++ {
 		for availableCpu != 0 {
 			availableCpu--
-			wg.Add(1)
-			go GenerateValidKey(pidGenerateConfig, interval, targetCidKey, quit, result, wg)
+			wgCount.Add(1)
+			go GenerateValidKey(pidGenerateConfig, interval, targetCidKey, quit, result, wgCount, &foundRoutine)
 		}
 
 		var keyInfo KeyInfo
 		for {
 			select {
 			case keyInfo = <-result:
-				found++
 				availableCpu++
 
-				fmt.Printf("%d/%d peers found in %s!\n\n", found, pidGenerateConfig.Quantity, time.Since(start))
+				fmt.Printf("Found in: %d tries\n\tDistance: %d\n\tSybil PeerID: %s\n\tSybil Private Key: %s\n",
+					keyInfo.tries, keyInfo.peerDistance, keyInfo.peerId, keyInfo.marshalPrivateKey)
+				fmt.Printf("%d/%d peers found in %s!\n\n", i+1, pidGenerateConfig.Quantity, time.Since(start))
 
 				peerId = append(peerId, keyInfo.peerId)
 				privateKey = append(privateKey, keyInfo.marshalPrivateKey)
-
-				if found == pidGenerateConfig.Quantity {
-					for j := 0; j < numberCpu-1; j++ {
-						quit <- true
-					}
-
-					wg.Wait()
-					close(result)
-					close(quit)
-
-					fmt.Println("All GoRoutines stopped! Finished!")
-				}
 
 				break
 			}
 			break
 		}
 	}
+
+	// Stop all currently opened GoRoutines
+	for wgCount.GetCount() != 0 {
+		quit <- true
+	}
+
+	wgCount.Wait()
+	close(result)
+	close(quit)
+
+	fmt.Println("All GoRoutines stopped! Finished!")
 
 	since := time.Since(start)
 	fmt.Println("It took", since, "to generate peers.")
