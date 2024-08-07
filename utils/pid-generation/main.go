@@ -11,7 +11,7 @@ import (
 )
 
 func writePeersToOutputFile(pidGenerateConfig generate.PidGenerateConfig, peerId []string, privateKey []string) {
-	file, err := os.Create(*pidGenerateConfig.OutFile)
+	file, err := os.Create(pidGenerateConfig.OutFile)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		return
@@ -43,7 +43,7 @@ func writePeersToOutputFile(pidGenerateConfig generate.PidGenerateConfig, peerId
 		return
 	}
 
-	fmt.Println("File ", *pidGenerateConfig.OutFile, " created!")
+	fmt.Println("File ", pidGenerateConfig.OutFile, " created!")
 }
 
 func help() func() {
@@ -75,28 +75,40 @@ func help() func() {
 func treatFlags() *generate.PidGenerateConfig {
 	flagConfig := generate.PidGenerateConfig{}
 
-	flagConfig.ByInterval = flag.Bool("byInterval", false, "")
-	flagConfig.ByClosest = flag.Bool("byClosest", false, "")
-	flagConfig.ByCpl = flag.Bool("byCpl", false, "")
+	byInterval := flag.Bool("byInterval", false, "")
+	byClosest := flag.Bool("byClosest", false, "")
+	byCpl := flag.Bool("byCpl", false, "")
 
 	var quantityInCpl [generate.MaxProbabilities]int
 	for i := 0; i < generate.MaxProbabilities; i++ {
 		flag.IntVar(&quantityInCpl[i], strconv.Itoa(i), 0, "")
 	}
-	flag.IntVar(&flagConfig.Quantity, "quantity", 0, "")
-	flag.IntVar(&flagConfig.Cpl, "cpl", 0, "")
-	flag.IntVar(&flagConfig.FirstPort, "firstPort", 10000, "")
-	flagConfig.UseAllCpus = flag.Bool("useAllCpus", true, "")
-	flagConfig.Cid = flag.String("cid", "", "")
-	flagConfig.OutFile = flag.String("outFile", "sybils-out", "")
-	flagConfig.FirstPeer = flag.String("firstPeer", "", "")
-	flagConfig.SecondPeer = flag.String("secondPeer", "", "")
+	quantity := flag.Int("quantity", 0, "")
+	cpl := flag.Int("cpl", 0, "")
+	firstPort := flag.Int("firstPort", 10000, "")
+	useAllCpus := flag.Bool("useAllCpus", true, "")
+	cid := flag.String("cid", "", "")
+	outFile := flag.String("outFile", "sybils-out", "")
+	firstPeer := flag.String("firstPeer", "", "")
+	secondPeer := flag.String("secondPeer", "", "")
 
 	flag.Usage = help()
 
 	flag.Parse()
 
-	if !*flagConfig.ByInterval && !*flagConfig.ByClosest && !*flagConfig.ByCpl {
+	flagConfig.ByInterval = *byInterval
+	flagConfig.ByClosest = *byClosest
+	flagConfig.ByCpl = *byCpl
+	flagConfig.Quantity = *quantity
+	flagConfig.Cpl = *cpl
+	flagConfig.FirstPort = *firstPort
+	flagConfig.UseAllCpus = *useAllCpus
+	flagConfig.Cid = *cid
+	flagConfig.OutFile = *outFile
+	flagConfig.FirstPeer = *firstPeer
+	flagConfig.SecondPeer = *secondPeer
+
+	if !flagConfig.ByInterval && !flagConfig.ByClosest && !flagConfig.ByCpl {
 		fmt.Println("error: mode missing.")
 		fmt.Println()
 		flag.Usage()
@@ -105,12 +117,12 @@ func treatFlags() *generate.PidGenerateConfig {
 
 	missingFlag := false
 
-	if len(*flagConfig.Cid) == 0 {
+	if len(flagConfig.Cid) == 0 {
 		fmt.Println("error: flag cid missing.")
 		missingFlag = true
 	}
 
-	if *flagConfig.ByCpl {
+	if flagConfig.ByCpl {
 		for i := 0; i < generate.MaxProbabilities; i++ {
 			if quantityInCpl[i] > 0 {
 				nodeInCpl := generate.NodePerCpl{Cpl: i, Quantity: quantityInCpl[i]}
@@ -129,13 +141,13 @@ func treatFlags() *generate.PidGenerateConfig {
 		}
 	}
 
-	if *flagConfig.ByInterval {
-		if len(*flagConfig.FirstPeer) == 0 {
+	if flagConfig.ByInterval {
+		if len(flagConfig.FirstPeer) == 0 {
 			fmt.Println("error: flag firstPeer missing.")
 			missingFlag = true
 		}
 
-		if len(*flagConfig.SecondPeer) == 0 {
+		if len(flagConfig.SecondPeer) == 0 {
 			fmt.Println("error: flag secondPeer missing.")
 			missingFlag = true
 		}
@@ -154,7 +166,7 @@ func main() {
 	flagConfig := treatFlags()
 
 	var numberCpu int
-	if *flagConfig.UseAllCpus {
+	if flagConfig.UseAllCpus {
 		numberCpu = runtime.NumCPU()
 		fmt.Printf("Using all %d CPUs for generating the peers...\n\n", numberCpu)
 	} else {
@@ -166,10 +178,10 @@ func main() {
 	var peerId []string
 	var privateKey []string
 
-	fmt.Printf("Getting closest peers to %s...\n\n", *flagConfig.Cid)
+	fmt.Printf("Getting closest peers to %s...\n\n", flagConfig.Cid)
 	closestList := generate.GetClosestPeersFromCidAsList(*flagConfig)
 
-	if *flagConfig.ByCpl {
+	if flagConfig.ByCpl {
 		var cplPeerId []string
 		var cplPrivateKey []string
 

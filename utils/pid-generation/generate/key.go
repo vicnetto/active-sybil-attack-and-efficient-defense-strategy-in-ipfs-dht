@@ -88,15 +88,15 @@ func GenerateValidKey(pidGenerateConfig PidGenerateConfig, interval Interval, ta
 			}
 
 			good := false
-			if *pidGenerateConfig.ByCpl {
+			if pidGenerateConfig.ByCpl {
 				good = IsValidAccordingToCPLRules(pidGenerateConfig.Cpl, interval, key, targetCidKey)
 			}
 
-			if *pidGenerateConfig.ByInterval {
+			if pidGenerateConfig.ByInterval {
 				good = IsValidAccordingToIntervalRules(interval, key.peerDistance)
 			}
 
-			if *pidGenerateConfig.ByClosest {
+			if pidGenerateConfig.ByClosest {
 				good = IsValidAccordingToClosestRules(interval, key)
 			}
 

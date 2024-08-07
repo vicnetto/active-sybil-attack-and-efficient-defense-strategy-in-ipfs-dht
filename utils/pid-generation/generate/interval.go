@@ -18,11 +18,11 @@ func IsValidAccordingToIntervalRules(interval Interval, peerDistance *big.Int) b
 }
 
 func ByIntervalConfiguration(pidGenerateConfig PidGenerateConfig, targetCidKey kspace.Key) Interval {
-	firstBytes, _ := mh.FromB58String(*pidGenerateConfig.FirstPeer)
+	firstBytes, _ := mh.FromB58String(pidGenerateConfig.FirstPeer)
 	firstKey := kspace.XORKeySpace.Key(firstBytes)
 	firstDistance := firstKey.Distance(targetCidKey)
 
-	secondBytes, _ := mh.FromB58String(*pidGenerateConfig.SecondPeer)
+	secondBytes, _ := mh.FromB58String(pidGenerateConfig.SecondPeer)
 	secondKey := kspace.XORKeySpace.Key(secondBytes)
 	secondDistance := secondKey.Distance(targetCidKey)
 
@@ -32,14 +32,14 @@ func ByIntervalConfiguration(pidGenerateConfig PidGenerateConfig, targetCidKey k
 		interval.farthest = firstDistance
 		interval.closest = secondDistance
 
-		left = *pidGenerateConfig.FirstPeer
-		right = *pidGenerateConfig.SecondPeer
+		left = pidGenerateConfig.FirstPeer
+		right = pidGenerateConfig.SecondPeer
 	} else {
 		interval.farthest = secondDistance
 		interval.closest = firstDistance
 
-		left = *pidGenerateConfig.SecondPeer
-		right = *pidGenerateConfig.FirstPeer
+		left = pidGenerateConfig.SecondPeer
+		right = pidGenerateConfig.FirstPeer
 	}
 
 	fmt.Printf("Generating %d sybils in between the peers %s and %s...\n", pidGenerateConfig.Quantity, left, right)

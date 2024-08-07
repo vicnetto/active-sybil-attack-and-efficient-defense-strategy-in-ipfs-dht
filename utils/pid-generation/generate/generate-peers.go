@@ -28,7 +28,7 @@ func GetClosestPeersFromCidAsList(pidGenerateConfig PidGenerateConfig) []string 
 	var closestList []string
 
 	for {
-		closest, err := GetClosestPeersFromCID(*pidGenerateConfig.Cid, Timeout)
+		closest, err := GetClosestPeersFromCID(pidGenerateConfig.Cid, Timeout)
 		if closest == "" || err != nil {
 			fmt.Println("Retrying get cpl peers...")
 			continue
@@ -148,26 +148,26 @@ func generateKeysInMultipleCpus(pidGenerateConfig PidGenerateConfig, numberCpu i
 }
 
 func GeneratePeers(pidGenerateConfig PidGenerateConfig, numberCpu int, closestList []string) ([]string, []string, error) {
-	decode, err := gocid.Decode(*pidGenerateConfig.Cid)
+	decode, err := gocid.Decode(pidGenerateConfig.Cid)
 	if err != nil {
 		fmt.Println(err)
 		return nil, nil, err
 	}
 
-	targetCIDByte, _ := mh.FromB58String(*pidGenerateConfig.Cid)
+	targetCIDByte, _ := mh.FromB58String(pidGenerateConfig.Cid)
 	targetCIDKey := kspace.XORKeySpace.Key(targetCIDByte)
 
 	var interval Interval
 
-	if *pidGenerateConfig.ByCpl {
+	if pidGenerateConfig.ByCpl {
 		interval = ByCplConfiguration(pidGenerateConfig, decode, targetCIDKey, closestList)
 	}
 
-	if *pidGenerateConfig.ByInterval {
+	if pidGenerateConfig.ByInterval {
 		interval = ByIntervalConfiguration(pidGenerateConfig, targetCIDKey)
 	}
 
-	if *pidGenerateConfig.ByClosest {
+	if pidGenerateConfig.ByClosest {
 		interval = ByClosestConfiguration(pidGenerateConfig, targetCIDKey, closestList)
 	}
 
