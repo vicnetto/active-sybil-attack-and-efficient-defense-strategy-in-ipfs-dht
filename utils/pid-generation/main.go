@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"os"
 	"github.com/vicnetto/active-sybil-attack/utils/pid-generation/generate"
+	"os"
 	"runtime"
 	"strconv"
 )
@@ -166,7 +166,7 @@ func main() {
 	var peerId []string
 	var privateKey []string
 
-	fmt.Printf("Getting cpl peers to %s...\n\n", *flagConfig.Cid)
+	fmt.Printf("Getting closest peers to %s...\n\n", *flagConfig.Cid)
 	closestList := generate.GetClosestPeersFromCidAsList(*flagConfig)
 
 	if *flagConfig.ByCpl {
