@@ -152,7 +152,7 @@ func SpawnEphemeral(ctx context.Context, peerConfig Config) (coreiface.CoreAPI, 
 
 	api, err := coreapi.NewCoreAPI(node)
 
-	fmt.Println("Peer is UP: "+node.Identity.String(), "\n")
+	// fmt.Println("Peer is UP: "+node.Identity.String(), "\n")
 
 	return api, node, err
 }
