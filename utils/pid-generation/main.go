@@ -50,21 +50,27 @@ func help() func() {
 	return func() {
 		fmt.Println("Usage: ./generate-PID [mode] [flags]:")
 		fmt.Println(" A mode must be specified:")
+		fmt.Println("	-byBase32            -- Generate PIDs closer than the specified peer in Base32")
 		fmt.Println("	-byInterval          -- Generate PIDs within a specific interval from the CID")
 		fmt.Println("	-byClosest           -- Generate PIDs closer than the cpl instantiate to the CID")
 		fmt.Println("	-byCpl               -- Generate PIDs with a specific common prefix length (CPL) from the CID")
 		fmt.Println(" Global flags:")
-		fmt.Println("	-cid <string>        -- Referenced CID")
 		fmt.Println("	-firstPort <int>     -- Initial port for generated sybils (default: 10000)")
 		fmt.Println("	-outFile <string>    -- Output file name (default: sybils-out)")
 		fmt.Println("	-useAllCpus <bool>   -- Use all CPUs for the calculation (default: true)")
+		fmt.Println(" Flags for -byBase32 mode:")
+		fmt.Println("	-peer <string>       -- Reference peer")
+		fmt.Println("	-quantity <int>      -- Number of peer IDs")
 		fmt.Println(" Flags for -byClosest mode:")
+		fmt.Println("	-cid <string>        -- Referenced CID")
 		fmt.Println("	-quantity <int>      -- Number of peer IDs")
 		fmt.Println(" Flags for -byInterval mode:")
+		fmt.Println("	-cid <string>        -- Referenced CID")
 		fmt.Println("	-quantity <int>      -- Number of peer IDs")
 		fmt.Println("	-firstPeer <string>  -- First peer in the interval")
 		fmt.Println("	-secondPeer <string> -- Second peer in the interval")
 		fmt.Println(" Flags for -byCpl mode:")
+		fmt.Println("	-cid <string>        -- Referenced CID")
 		fmt.Println("	-<int> <int>         -- Specify the number of nodes to be generated for each CPL. Multiple CPLs can be specified.")
 		fmt.Println("	                         Example: -10 5 -11 7")
 		fmt.Println("	                                  |     *-----> CPL: 11, quantity: 7")
@@ -78,6 +84,7 @@ func treatFlags() *generate.PidGenerateConfig {
 	byInterval := flag.Bool("byInterval", false, "")
 	byClosest := flag.Bool("byClosest", false, "")
 	byCpl := flag.Bool("byCpl", false, "")
+	byBase32 := flag.Bool("byBase32", false, "")
 
 	var quantityInCpl [generate.MaxProbabilities]int
 	for i := 0; i < generate.MaxProbabilities; i++ {
@@ -91,6 +98,7 @@ func treatFlags() *generate.PidGenerateConfig {
 	outFile := flag.String("outFile", "sybils-out", "")
 	firstPeer := flag.String("firstPeer", "", "")
 	secondPeer := flag.String("secondPeer", "", "")
+	referencePeer := flag.String("peer", "", "")
 
 	flag.Usage = help()
 
@@ -99,6 +107,7 @@ func treatFlags() *generate.PidGenerateConfig {
 	flagConfig.ByInterval = *byInterval
 	flagConfig.ByClosest = *byClosest
 	flagConfig.ByCpl = *byCpl
+	flagConfig.ByBase32 = *byBase32
 	flagConfig.Quantity = *quantity
 	flagConfig.Cpl = *cpl
 	flagConfig.FirstPort = *firstPort
@@ -107,8 +116,9 @@ func treatFlags() *generate.PidGenerateConfig {
 	flagConfig.OutFile = *outFile
 	flagConfig.FirstPeer = *firstPeer
 	flagConfig.SecondPeer = *secondPeer
+	flagConfig.ReferencePeer = *referencePeer
 
-	if !flagConfig.ByInterval && !flagConfig.ByClosest && !flagConfig.ByCpl {
+	if !flagConfig.ByInterval && !flagConfig.ByClosest && !flagConfig.ByCpl && !flagConfig.ByBase32 {
 		fmt.Println("error: mode missing.")
 		fmt.Println()
 		flag.Usage()
@@ -116,11 +126,6 @@ func treatFlags() *generate.PidGenerateConfig {
 	}
 
 	missingFlag := false
-
-	if len(flagConfig.Cid) == 0 {
-		fmt.Println("error: flag cid missing.")
-		missingFlag = true
-	}
 
 	if flagConfig.ByCpl {
 		for i := 0; i < generate.MaxProbabilities; i++ {
@@ -134,11 +139,6 @@ func treatFlags() *generate.PidGenerateConfig {
 			fmt.Println("error: flag -<cpl> <quantity> missing.")
 			missingFlag = true
 		}
-	} else {
-		if flagConfig.Quantity == 0 {
-			fmt.Println("error: flag quantity missing.")
-			missingFlag = true
-		}
 	}
 
 	if flagConfig.ByInterval {
@@ -149,6 +149,29 @@ func treatFlags() *generate.PidGenerateConfig {
 
 		if len(flagConfig.SecondPeer) == 0 {
 			fmt.Println("error: flag secondPeer missing.")
+			missingFlag = true
+		}
+		if flagConfig.Quantity == 0 {
+			fmt.Println("error: flag quantity missing.")
+			missingFlag = true
+		}
+	}
+
+	if flagConfig.ByClosest || flagConfig.ByInterval || flagConfig.ByBase32 {
+		if flagConfig.Quantity == 0 {
+			fmt.Println("error: flag quantity missing.")
+			missingFlag = true
+		}
+	}
+
+	if flagConfig.ByBase32 {
+		if len(flagConfig.ReferencePeer) == 0 {
+			fmt.Println("error: flag peer missing.")
+			missingFlag = true
+		}
+	} else {
+		if len(flagConfig.Cid) == 0 {
+			fmt.Println("error: flag cid missing.")
 			missingFlag = true
 		}
 	}
@@ -178,8 +201,11 @@ func main() {
 	var peerId []string
 	var privateKey []string
 
-	fmt.Printf("Getting closest peers to %s...\n\n", flagConfig.Cid)
-	closestList := generate.GetClosestPeersFromCidAsList(*flagConfig)
+	var closestList []string
+	if !flagConfig.ByBase32 {
+		fmt.Printf("Getting closest peers to %s...\n\n", flagConfig.Cid)
+		closestList = generate.GetClosestPeersFromCidAsList(*flagConfig)
+	}
 
 	if flagConfig.ByCpl {
 		var cplPeerId []string

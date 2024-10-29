@@ -12,19 +12,21 @@ type NodePerCpl struct {
 }
 
 type PidGenerateConfig struct {
-	ByInterval bool
-	ByClosest  bool
-	ByCpl      bool
+	Quantity   int
+	Cid        string
+	FirstPort  int
+	OutFile    string
 	UseAllCpus bool
 
+	ByInterval bool
 	FirstPeer  string
 	SecondPeer string
 
+	ByClosest   bool
+	ByCpl       bool
 	Cpl         int
 	NodesPerCpl []NodePerCpl
 
-	Quantity  int
-	Cid       string
-	FirstPort int
-	OutFile   string
+	ByBase32      bool
+	ReferencePeer string
 }

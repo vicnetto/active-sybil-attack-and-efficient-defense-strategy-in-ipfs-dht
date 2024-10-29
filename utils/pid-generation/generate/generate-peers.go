@@ -148,14 +148,21 @@ func generateKeysInMultipleCpus(pidGenerateConfig PidGenerateConfig, numberCpu i
 }
 
 func GeneratePeers(pidGenerateConfig PidGenerateConfig, numberCpu int, closestList []string) ([]string, []string, error) {
-	decode, err := gocid.Decode(pidGenerateConfig.Cid)
-	if err != nil {
-		fmt.Println(err)
-		return nil, nil, err
-	}
+	var decode cid.Cid
+	var targetCIDKey kspace.Key
 
-	targetCIDByte, _ := mh.FromB58String(pidGenerateConfig.Cid)
-	targetCIDKey := kspace.XORKeySpace.Key(targetCIDByte)
+	if !pidGenerateConfig.ByBase32 {
+		var err error
+
+		decode, err = gocid.Decode(pidGenerateConfig.Cid)
+		if err != nil {
+			fmt.Println(err)
+			return nil, nil, err
+		}
+
+		targetCIDByte, _ := mh.FromB58String(pidGenerateConfig.Cid)
+		targetCIDKey = kspace.XORKeySpace.Key(targetCIDByte)
+	}
 
 	var interval Interval
 

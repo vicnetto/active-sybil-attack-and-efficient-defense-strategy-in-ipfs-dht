@@ -41,7 +41,7 @@ func (wg *WaitGroupCount) GetCount() int {
 	return int(atomic.LoadInt64(&wg.count))
 }
 
-func generateNewKey(targetCIDKey kspace.Key) (KeyInfo, error) {
+func generateNewKey(pidGenerateConfig PidGenerateConfig, targetCIDKey kspace.Key) (KeyInfo, error) {
 	privateKey, publicKey, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		log.Println(err)
@@ -56,7 +56,11 @@ func generateNewKey(targetCIDKey kspace.Key) (KeyInfo, error) {
 
 	peerMultiHash, _ := mh.FromB58String(peerId.String())
 	peerKey := kspace.XORKeySpace.Key(peerMultiHash)
-	peerDistance := peerKey.Distance(targetCIDKey)
+
+	var peerDistance *big.Int
+	if !pidGenerateConfig.ByBase32 {
+		peerDistance = peerKey.Distance(targetCIDKey)
+	}
 
 	marshalPrivateKey, err := crypto.MarshalPrivateKey(privateKey)
 	if err != nil {
@@ -82,7 +86,7 @@ func GenerateValidKey(pidGenerateConfig PidGenerateConfig, interval Interval, ta
 
 		default:
 			tries = tries + 1
-			key, err := generateNewKey(targetCidKey)
+			key, err := generateNewKey(pidGenerateConfig, targetCidKey)
 			if err != nil {
 				continue
 			}
@@ -98,6 +102,10 @@ func GenerateValidKey(pidGenerateConfig PidGenerateConfig, interval Interval, ta
 
 			if pidGenerateConfig.ByClosest {
 				good = IsValidAccordingToClosestRules(interval, key)
+			}
+
+			if pidGenerateConfig.ByBase32 {
+				good = IsValidAccordingToBase32Rules(pidGenerateConfig.ReferencePeer, key)
 			}
 
 			if good {
