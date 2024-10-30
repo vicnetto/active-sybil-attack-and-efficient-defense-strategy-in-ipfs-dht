@@ -1,4 +1,4 @@
-module pr-order
+module github.com/vicnetto/active-sybil-attack/utils/pr-order
 
 go 1.23.2
 
