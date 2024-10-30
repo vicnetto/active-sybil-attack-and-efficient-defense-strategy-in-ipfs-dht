@@ -5,7 +5,7 @@ go 1.23.2
 require (
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/kubo v0.31.0
-	github.com/libp2p/go-libp2p v0.37.0
+	github.com/libp2p/go-libp2p v0.36.5
 	github.com/multiformats/go-base32 v0.1.0
 	github.com/vicnetto/active-sybil-attack/logger v0.0.0-20241030153718-e9203f36970d
 )
