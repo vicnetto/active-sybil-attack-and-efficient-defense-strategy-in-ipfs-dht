@@ -40,18 +40,18 @@ func GetProvidersFromPeer(ctx context.Context, logger logger.Logger, clientNode 
 }
 
 func FindSmallestBase32(currentSmallest SmallestProvider, providers []*peer.AddrInfo) SmallestProvider {
-	if len(currentSmallest.pid) == 0 && len(providers) != 0 {
-		currentSmallest.pid = providers[0].ID
-		currentSmallest.base32 = base32.RawStdEncoding.EncodeToString([]byte(providers[0].ID))
+	if len(currentSmallest.Pid) == 0 && len(providers) != 0 {
+		currentSmallest.Pid = providers[0].ID
+		currentSmallest.Base32 = base32.RawStdEncoding.EncodeToString([]byte(providers[0].ID))
 	}
 
 	if len(providers) > 0 {
 		for _, provider := range providers {
 			keyPeerEncoded := base32.RawStdEncoding.EncodeToString([]byte(provider.ID))
 
-			if strings.Compare(keyPeerEncoded, currentSmallest.base32) < 0 {
-				currentSmallest.pid = provider.ID
-				currentSmallest.base32 = keyPeerEncoded
+			if strings.Compare(keyPeerEncoded, currentSmallest.Base32) < 0 {
+				currentSmallest.Pid = provider.ID
+				currentSmallest.Base32 = keyPeerEncoded
 			}
 		}
 	}
