@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -14,6 +16,12 @@ const MaxProbabilities = 40
 type NodePerCpl struct {
 	Cpl      int
 	Quantity int
+}
+
+type PeerInfo struct {
+	PeerID     string
+	PrivateKey string `json:",omitempty"`
+	Port       int
 }
 
 type PidGenerateConfig struct {
@@ -70,4 +78,52 @@ func WritePeersToOutputFile(pidGenerateConfig PidGenerateConfig, peerId []string
 	}
 
 	fmt.Println("File ", pidGenerateConfig.OutFile, " created!")
+}
+
+func ReadAndFormatPeers(filePath string) []PeerInfo {
+	file, err := os.Open(filePath)
+	if err != nil {
+		fmt.Println("Failed when opening file")
+		panic(err)
+	}
+	defer func(file *os.File) {
+		err = file.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(file)
+
+	var peerInfo []PeerInfo
+	scanner := bufio.NewScanner(file)
+	fmt.Println("Identities:")
+
+	for i := 0; scanner.Scan(); i++ {
+		line := scanner.Text()
+		parts := strings.Fields(line)
+		if len(parts) != 3 {
+			panic(fmt.Errorf("invalid line format. line should have the following format [privateKey publicKey port]"))
+		}
+
+		privateKey := parts[0]
+		peerId := parts[1]
+		port := parts[2]
+
+		portInt, err := strconv.Atoi(port)
+		if err != nil {
+			panic(fmt.Errorf("invalid port. line should have the following format [privateKey publicKey port(int)]"))
+		}
+
+		info := PeerInfo{PeerID: peerId, PrivateKey: privateKey, Port: portInt}
+		peerInfo = append(peerInfo, info)
+
+		fmt.Println(i, info)
+	}
+	fmt.Println()
+
+	if err = scanner.Err(); err != nil {
+		fmt.Println("Failed when reading file")
+		panic(err)
+	}
+
+	return peerInfo
 }
