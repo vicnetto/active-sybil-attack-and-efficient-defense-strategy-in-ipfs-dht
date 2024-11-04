@@ -14,6 +14,52 @@ type Config struct {
 	MinSybils          int
 	ClosestNodeIsSybil bool
 	NetworkSize        int
+	ScorePriority      ScorePriority
+}
+
+type ScorePriority int
+
+const (
+	Quantity ScorePriority = iota
+	Distribution
+	Proximity
+)
+const (
+	QuantityString     = "quantity"
+	DistributionString = "distribution"
+	ProximityString    = "proximity"
+)
+
+func GetStringFromScorePriority(scorePriority ScorePriority) string {
+	var scorePriorityString string
+
+	switch scorePriority {
+	case Quantity:
+		scorePriorityString = QuantityString
+	case Distribution:
+		scorePriorityString = DistributionString
+	case Proximity:
+		scorePriorityString = ProximityString
+	}
+
+	return scorePriorityString
+}
+
+func GetScorePriorityFromString(scorePriorityAsString string) ScorePriority {
+	var scorePriority ScorePriority
+
+	switch scorePriorityAsString {
+	case QuantityString:
+		scorePriority = Quantity
+	case DistributionString:
+		scorePriority = Distribution
+	case ProximityString:
+		scorePriority = Proximity
+	default:
+		return -1
+	}
+
+	return scorePriority
 }
 
 func DefaultConfig(nodesPerCpl []int) (Config, error) {
@@ -44,6 +90,7 @@ func DefaultConfig(nodesPerCpl []int) (Config, error) {
 	config.MinScore = -1
 	config.MinSybils = -1
 	config.ClosestNodeIsSybil = false
+	config.ScorePriority = Distribution
 
 	return config, nil
 }

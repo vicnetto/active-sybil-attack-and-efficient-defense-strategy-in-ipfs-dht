@@ -6,13 +6,14 @@ import (
 )
 
 type Position struct {
-	cpl        int
-	nodesInCpl int
-	nodeCount  int
-	sybils     int
-	minimumCpl int
-	maximumCpl int
-	pathKl     float64
+	cpl                    int
+	nodesInCpl             int
+	nodeCount              int
+	sybils                 int
+	minimumCpl             int
+	maximumCpl             int
+	pathKl                 float64
+	closestReliableNodeCpl int
 }
 
 type Result struct {
@@ -73,12 +74,24 @@ func sybilInCPL(cpl int, currentNodesInCpl int, minCpl int) int {
 	return currentNodesInCpl - startNodesPerCpl[cpl]
 }
 
-func scoreCountTotal(nodesPerCpl [probability.MaxCpl]int, position Position) float64 {
+func scoreCountTotal(nodesPerCpl [probability.MaxCpl]int, position Position, priority ScorePriority) float64 {
 	score := float64(0)
 
 	for cpl := position.minimumCpl; cpl <= position.maximumCpl; cpl++ {
 		sybilInCpl := sybilInCPL(cpl, nodesPerCpl[cpl], position.minimumCpl)
-		score += float64(cpl) * float64(sybilInCpl)
+
+		if sybilInCpl != 0 {
+			switch priority {
+			case Quantity:
+				score += float64(sybilInCpl)
+			case Distribution:
+				score += float64(cpl) * float64(sybilInCpl)
+			case Proximity:
+				if cpl >= position.closestReliableNodeCpl {
+					score += float64(cpl) * float64(sybilInCpl)
+				}
+			}
+		}
 	}
 
 	return score
@@ -154,7 +167,7 @@ func sybilPositionOptimization(optimizationFlags Config, position Position, node
 		position.sybils += nodesPerCpl[position.cpl]
 
 		if position.nodeCount == probability.K {
-			score := scoreCountTotal(nodesPerCpl, position)
+			score := scoreCountTotal(nodesPerCpl, position, optimizationFlags.ScorePriority)
 
 			if score > topScores[optimizationFlags.Top-1].Score && position.pathKl < optimizationFlags.MaxKl &&
 				score >= optimizationFlags.MinScore && position.pathKl >= optimizationFlags.MinKl &&
@@ -207,14 +220,23 @@ func BeginSybilPositionOptimization(optimizationFlags Config) ([]Result, error) 
 	var startMinimumCpl, startMaximumCpl int
 	startMaximumCpl = probability.MaxCpl - 1
 
-	for i, cpl := range optimizationFlags.NodesPerCpl {
-		if cpl != 0 && startMinimumCpl == 0 {
-			startMinimumCpl = i
+	nodeCount, closestReliableNodeCpl := 0, 0
+	for cpl, nodes := range optimizationFlags.NodesPerCpl {
+		nodeCount += nodes
+
+		if nodes != 0 && startMinimumCpl == 0 {
+			startMinimumCpl = cpl
+		}
+
+		if nodeCount == probability.K {
+			closestReliableNodeCpl = cpl
+			break
 		}
 	}
 
 	for i := optimizationFlags.NodesPerCpl[startMaximumCpl]; i < probability.K+1; i++ {
-		position := Position{startMaximumCpl, i, 0, 0, startMinimumCpl, startMaximumCpl, 0}
+		position := Position{startMaximumCpl, i, 0, 0, startMinimumCpl,
+			startMaximumCpl, 0, closestReliableNodeCpl}
 		sybilPositionOptimization(optimizationFlags, position, nodesPerCpl)
 	}
 
