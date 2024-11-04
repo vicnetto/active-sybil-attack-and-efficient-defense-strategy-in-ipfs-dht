@@ -10,16 +10,16 @@ const K = 20
 const MaxCpl = 30
 const KlThreshold = 0.94
 const DefaultNetworkSize = 13239
-const keySize = 256
+const KeySize = 256
 
 // UpdateIdealDistFromNetSize returns an array containing the probabilities associated with each CPL
 // - The code was extracted from the paper "Content Censorship in IPFS".
 func UpdateIdealDistFromNetSize(n int) []float64 {
 	orderPmfs := make([][]float64, K)
-	s := make([]float64, keySize)
+	s := make([]float64, KeySize)
 	for i := 0; i < K; i++ {
-		orderPmfs[i] = make([]float64, keySize)
-		for x := 0; x < keySize; x++ {
+		orderPmfs[i] = make([]float64, KeySize)
+		for x := 0; x < KeySize; x++ {
 			b := distuv.Binomial{
 				N: float64(n),
 				P: math.Pow(0.5, float64(x+1)),
@@ -32,8 +32,8 @@ func UpdateIdealDistFromNetSize(n int) []float64 {
 			}
 		}
 	}
-	avgPmf := make([]float64, keySize)
-	for x := 0; x < keySize; x++ {
+	avgPmf := make([]float64, KeySize)
+	for x := 0; x < KeySize; x++ {
 		for i := 0; i < K; i++ {
 			avgPmf[x] += orderPmfs[i][x]
 		}
