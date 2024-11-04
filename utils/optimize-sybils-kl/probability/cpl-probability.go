@@ -7,7 +7,7 @@ import (
 )
 
 const K = 20
-const MaxCpl = 40
+const MaxCpl = 30
 const KlThreshold = 0.94
 const DefaultNetworkSize = 13239
 const keySize = 256
