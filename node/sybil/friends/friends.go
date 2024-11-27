@@ -8,6 +8,7 @@ import (
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
+	"github.com/vicnetto/active-sybil-attack/logger"
 	"net"
 	"os"
 	"strings"
@@ -15,6 +16,8 @@ import (
 )
 
 var sleepBetweenConnections = 2 * time.Second
+
+var log = logger.InitializeLogger()
 
 func ExtractGroupFromIp(address string) string {
 	ip := net.ParseIP(address)
@@ -57,10 +60,10 @@ func ExtractUniqueIPv4(address []multiaddr.Multiaddr) []string {
 	return uniqueIPs
 }
 
-func ReadAndFormatOtherPeers(filePath string, myPrivateKey string) []multiaddr.Multiaddr {
+func ReadOtherPeersAsPeerInfo(filePath string, myPrivateKey string, ip string) []peer.AddrInfo {
 	file, err := os.Open(filePath)
 	if err != nil {
-		fmt.Println("Failed when opening file")
+		log.Error.Println("Failed when opening file in the filepath:", filePath)
 		panic(err)
 	}
 	defer func(file *os.File) {
@@ -70,9 +73,9 @@ func ReadAndFormatOtherPeers(filePath string, myPrivateKey string) []multiaddr.M
 		}
 	}(file)
 
-	var otherSybilsMultiAddress []multiaddr.Multiaddr
+	var otherSybilsAddrInfo []peer.AddrInfo
 	scanner := bufio.NewScanner(file)
-	fmt.Println("Other sybils:")
+	log.Info.Println("Other sybils:")
 
 	for i := 0; scanner.Scan(); i++ {
 		line := scanner.Text()
@@ -89,20 +92,27 @@ func ReadAndFormatOtherPeers(filePath string, myPrivateKey string) []multiaddr.M
 			continue
 		}
 
-		multiAddress := fmt.Sprintf("/ip4/127.0.0.1/tcp/%s/p2p/%s", port, peerId)
+		multiAddress := fmt.Sprintf("/ip4/%s/tcp/%s/p2p/%s", ip, port, peerId)
 		cast := multiaddr.StringCast(multiAddress)
-		otherSybilsMultiAddress = append(otherSybilsMultiAddress, cast)
 
-		fmt.Println(i, multiAddress)
+		addrInfo, err := peer.AddrInfoFromP2pAddr(cast)
+		if err != nil {
+			log.Error.Println("Failed when parsing MultiAddress:", cast)
+			panic(err)
+		}
+
+		otherSybilsAddrInfo = append(otherSybilsAddrInfo, *addrInfo)
+
+		log.Info.Println(i, addrInfo)
 	}
 	fmt.Println()
 
 	if err = scanner.Err(); err != nil {
-		fmt.Println("Failed when reading file")
+		log.Error.Println("Failed when reading file")
 		panic(err)
 	}
 
-	return otherSybilsMultiAddress
+	return otherSybilsAddrInfo
 }
 
 func ConnectToOtherSybils(ctx context.Context, ipfsApi coreiface.CoreAPI, ipfsNode *core.IpfsNode, otherSybils []multiaddr.Multiaddr) {
@@ -132,6 +142,7 @@ func ConnectToOtherSybils(ctx context.Context, ipfsApi coreiface.CoreAPI, ipfsNo
 		if err == nil {
 			fmt.Println("Connected to RT:", peerId)
 		} else {
+			fmt.Println(err)
 			i--
 		}
 		fmt.Println()

