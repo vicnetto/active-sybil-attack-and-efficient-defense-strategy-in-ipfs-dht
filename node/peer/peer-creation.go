@@ -95,11 +95,14 @@ func createTempRepo(peerConfig Config) (string, error) {
 		return "", err
 	}
 
-	// Set only ip4 addresses because ip6 causes problem to diversity filter
+	// Set both ipv4 and ipv6 addresses.
 	cfg.Addresses.Swarm = []string{
 		fmt.Sprintf("/ip4/%s/tcp/%d", *peerConfig.Ip, peerConfig.Port),
 		fmt.Sprintf("/ip4/%s/udp/%d/quic-v1", *peerConfig.Ip, peerConfig.Port),
 		fmt.Sprintf("/ip4/%s/udp/%d/quic-v1/webtransport", *peerConfig.Ip, peerConfig.Port),
+		fmt.Sprintf("/ip6/::/tcp/%d", peerConfig.Port),
+		fmt.Sprintf("/ip6/::/udp/%d/quic-v1", peerConfig.Port),
+		fmt.Sprintf("/ip6/::/udp/%d/quic-v1/webtransport", peerConfig.Port),
 	}
 
 	// Create the repo with the config
