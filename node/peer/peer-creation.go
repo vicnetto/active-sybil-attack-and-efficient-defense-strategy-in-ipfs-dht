@@ -100,9 +100,9 @@ func createTempRepo(peerConfig Config) (string, error) {
 		fmt.Sprintf("/ip4/%s/tcp/%d", *peerConfig.Ip, peerConfig.Port),
 		fmt.Sprintf("/ip4/%s/udp/%d/quic-v1", *peerConfig.Ip, peerConfig.Port),
 		fmt.Sprintf("/ip4/%s/udp/%d/quic-v1/webtransport", *peerConfig.Ip, peerConfig.Port),
-		fmt.Sprintf("/ip6/::/tcp/%d", peerConfig.Port),
-		fmt.Sprintf("/ip6/::/udp/%d/quic-v1", peerConfig.Port),
-		fmt.Sprintf("/ip6/::/udp/%d/quic-v1/webtransport", peerConfig.Port),
+    // fmt.Sprintf("/ip6/::/tcp/%d", peerConfig.Port),
+		// fmt.Sprintf("/ip6/::/udp/%d/quic-v1", peerConfig.Port),
+		// fmt.Sprintf("/ip6/::/udp/%d/quic-v1/webtransport", peerConfig.Port),
 	}
 
 	// Create the repo with the config
