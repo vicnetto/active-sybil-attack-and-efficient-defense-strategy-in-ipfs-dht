@@ -1,4 +1,4 @@
-module k-closest-to-file
+module github.com/vicnetto/active-sybil-attack/utils/k-closest-to-file
 
 go 1.23.4
 
