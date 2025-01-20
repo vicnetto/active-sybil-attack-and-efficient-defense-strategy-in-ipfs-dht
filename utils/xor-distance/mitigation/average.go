@@ -6,9 +6,14 @@ import (
 	"math/big"
 )
 
-var alpha = 1.0 / 8.0
-var beta = 1
 var keySpace = 255
+var alpha = 1.0 / 16.0
+var beta = 0.5
+
+func SetParameters(alphaParam float64, betaParam float64) {
+	alpha = alphaParam
+	beta = betaParam
+}
 
 type MeanType int
 
@@ -41,14 +46,12 @@ func (mt MeanType) String() string {
 
 type WelfordAverage struct {
 	count *big.Int
-
-	mean         *big.Float
-	sumDeltaMean *big.Float // To store the sum of (x - Mean)^2
-
-	weightedMean         *big.Float
-	sumDeltaWeightedMean *big.Float
-
+	
+	mean, sumDeltaMean         *big.Float
+	weightedMean, sumDeltaWeightedMean         *big.Float
 	cplSum int
+
+	errorSquared        *big.Float
 }
 
 // NewWelfordMovingAverage initializes a new WelfordAverage instance
@@ -59,18 +62,36 @@ func NewWelfordMovingAverage() *WelfordAverage {
 		sumDeltaWeightedMean: big.NewFloat(0),
 		mean:                 big.NewFloat(0),
 		weightedMean:         big.NewFloat(0),
+		errorSquared:         big.NewFloat(0),
 	}
+}
+
+// NewWelfordMovingAverageFromMean initializes a new WelfordAverage from mean
+func NewWelfordMovingAverageFromMean(average WelfordAverage) *WelfordAverage {
+	// return &WelfordAverage{
+	// 	count:                new(big.Int).Set(average.count),
+	// 	sumDeltaMean:         new(big.Float).Set(average.sumDeltaMean),
+	// 	sumDeltaWeightedMean: new(big.Float).Set(average.sumDeltaMean),
+	// 	mean:                 new(big.Float).SetInt(average.GetAverage(MeanStdDev)),
+	// 	weightedMean:         new(big.Float).SetInt(average.GetAverage(MeanStdDev)),
+	// 	errorSquared:         big.NewFloat(0),
+	// 	cplSum:               average.cplSum,
+	// }
+	
+	newAverage := NewWelfordMovingAverage() 
+	newAverage.Add(average.GetAverage(Mean))
+	return newAverage
 }
 
 func (w *WelfordAverage) GetAverage(meanType MeanType) *big.Int {
 	switch meanType {
 	case Mean:
-		weightedMean, _ := w.mean.Int(new(big.Int))
-		return weightedMean
+		mean, _ := w.mean.Int(new(big.Int))
+		return mean
 	case MeanStdDev:
 		return w.getAverageWithStdDev(MeanStdDev)
 	case WeightedMean:
-		weightedMean, _ := w.mean.Int(new(big.Int))
+		weightedMean, _ := w.weightedMean.Int(new(big.Int))
 		return weightedMean
 	case WeightedMeanStdDev:
 		return w.getAverageWithStdDev(WeightedMeanStdDev)
@@ -148,7 +169,14 @@ func (w *WelfordAverage) Add(value *big.Int) {
 	w.sumDeltaMean.Add(w.sumDeltaMean, new(big.Float).Mul(deltaMean, delta2Mean))
 
 	// For the CPL
-	w.cplSum += keySpace - int(bigmath.Log10(value)/bigmath.Log10(big.NewInt(2)))
+	w.cplSum += keySpace - int(bigmath.Log10(new(big.Int).Set(value))/bigmath.Log10(big.NewInt(2)))
+
+	// For the error
+	if w.count.Cmp(big.NewInt(2)) >= 0 {
+		errorFromAverage := new(big.Float).Sub(w.weightedMean, new(big.Float).SetInt(value))
+		w.errorSquared.Add(w.errorSquared,
+			new(big.Float).Mul(errorFromAverage, errorFromAverage))
+	}
 }
 
 func (w *WelfordAverage) setWeightedMean(value *big.Int) {
@@ -165,4 +193,15 @@ func (w *WelfordAverage) setWeightedMean(value *big.Int) {
 	right := new(big.Float).Mul(rightFactor, new(big.Float).SetInt(value))
 
 	w.weightedMean = new(big.Float).Add(left, right)
+}
+
+func (w *WelfordAverage) GetErrorSquaredAverage() *big.Int {
+	if w.count.Cmp(big.NewInt(1)) <= 0 {
+		return big.NewInt(0)
+	}
+
+	countLessOne := new(big.Float).Sub(new(big.Float).SetInt(w.count), big.NewFloat(1))
+	intValue, _ := new(big.Float).Quo(w.errorSquared, countLessOne).Int(new(big.Int))
+
+	return intValue
 }
