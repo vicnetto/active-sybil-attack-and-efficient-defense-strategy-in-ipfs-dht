@@ -2,6 +2,7 @@ package peer
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"github.com/ipfs/kubo/config"
@@ -14,6 +15,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -59,6 +61,37 @@ func ConfigForNormalClient(port int) Config {
 	return Config{port, &ip, config.Identity{}}
 }
 
+func ConfigForRandomNode(port int) Config {
+	// Any IP address
+	ip := "0.0.0.0"
+
+	return Config{port, &ip, generateRandomPeerInfo()}
+}
+
+func generateRandomPeerInfo() config.Identity {
+	privateKey, publicKey, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
+
+	peerId, err := peer.IDFromPublicKey(publicKey)
+	if err != nil {
+		log.Println(err)
+		return config.Identity{}
+	}
+
+	marshalPrivateKey, err := crypto.MarshalPrivateKey(privateKey)
+	if err != nil {
+		fmt.Printf("Error when marshalling private key")
+		return config.Identity{}
+	}
+
+	encodedMarshalPrivateKey := crypto.ConfigEncodeKey(marshalPrivateKey)
+
+	return config.Identity{PeerID: peerId.String(), PrivKey: encodedMarshalPrivateKey}
+}
+
 func setupPlugins(externalPluginsPath string) error {
 	// Load any external plugins if available on externalPluginsPath
 	plugins, err := loader.NewPluginLoader(filepath.Join(externalPluginsPath, "plugins"))
@@ -100,7 +133,7 @@ func createTempRepo(peerConfig Config) (string, error) {
 		fmt.Sprintf("/ip4/%s/tcp/%d", *peerConfig.Ip, peerConfig.Port),
 		fmt.Sprintf("/ip4/%s/udp/%d/quic-v1", *peerConfig.Ip, peerConfig.Port),
 		fmt.Sprintf("/ip4/%s/udp/%d/quic-v1/webtransport", *peerConfig.Ip, peerConfig.Port),
-    // fmt.Sprintf("/ip6/::/tcp/%d", peerConfig.Port),
+		// fmt.Sprintf("/ip6/::/tcp/%d", peerConfig.Port),
 		// fmt.Sprintf("/ip6/::/udp/%d/quic-v1", peerConfig.Port),
 		// fmt.Sprintf("/ip6/::/udp/%d/quic-v1/webtransport", peerConfig.Port),
 	}
