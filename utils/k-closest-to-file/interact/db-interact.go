@@ -4,13 +4,18 @@ import (
 	"bufio"
 	"fmt"
 	gocid "github.com/ipfs/go-cid"
+	kspace "github.com/libp2p/go-libp2p-kbucket/keyspace"
 	"github.com/libp2p/go-libp2p/core/peer"
+	mh "github.com/multiformats/go-multihash"
 	"math/rand"
 	"os"
 	"path/filepath"
+	"slices"
 )
 
-// storeDHTLookupToFile stores a DHT lookup result into a file.
+var k = 20
+
+// StoreDHTLookupToFile stores a DHT lookup result into a file.
 // The file is created in the specified relative destination folder, which will be created if it does not exist.
 func StoreDHTLookupToFile(cid gocid.Cid, peers []peer.ID, relativePath string) error {
 	// Ensure the destination folder exists or create it.
@@ -44,7 +49,23 @@ func StoreDHTLookupToFile(cid gocid.Cid, peers []peer.ID, relativePath string) e
 	return nil
 }
 
-// getRandomDHTLookups retrieves $n random DHT lookups from the specified folder.
+// GetRandomDHTLookup retrieves one random DHT lookup from the specified folder.
+// Returns the data as a map[gocid.Cid][]peer.ID.
+func GetRandomDHTLookup(relativePath string) (gocid.Cid, []peer.ID, error) {
+	lookups, err := GetRandomDHTLookups(1, relativePath)
+
+	var cid gocid.Cid
+	var pid []peer.ID
+
+	for contentId, ids := range lookups {
+		cid = contentId
+		pid = ids
+	}
+
+	return cid, pid, err
+}
+
+// GetRandomDHTLookups retrieves $n random DHT lookups from the specified folder.
 // Returns the data as a map[gocid.Cid][]peer.ID.
 func GetRandomDHTLookups(n int, relativePath string) (map[gocid.Cid][]peer.ID, error) {
 	// Open the folder.
@@ -105,4 +126,37 @@ func GetRandomDHTLookups(n int, relativePath string) (map[gocid.Cid][]peer.ID, e
 	}
 
 	return result, nil
+}
+
+// GetClosestKFromContactedPeers sorts the contactedPeers list and returns the k closest peers
+func GetClosestKFromContactedPeers(cid gocid.Cid, contactedPeers []peer.ID) ([]peer.ID, error) {
+	closest, err := SortByDistance(cid, contactedPeers)
+	if err != nil {
+		return nil, err
+	}
+
+	closest = closest[:k-1]
+
+	return closest, nil
+}
+
+func SortByDistance(cid gocid.Cid, peers []peer.ID) ([]peer.ID, error) {
+	targetCIDByte, _ := mh.FromB58String(cid.String())
+	targetCIDKey := kspace.XORKeySpace.Key(targetCIDByte)
+
+	distanceCmp := func(a, b peer.ID) int {
+		aMultiHash, _ := mh.FromB58String(a.String())
+		aPeerKey := kspace.XORKeySpace.Key(aMultiHash)
+		aDistance := aPeerKey.Distance(targetCIDKey)
+
+		bMultiHash, _ := mh.FromB58String(b.String())
+		bPeerKey := kspace.XORKeySpace.Key(bMultiHash)
+		bDistance := bPeerKey.Distance(targetCIDKey)
+
+		return aDistance.Cmp(bDistance)
+	}
+
+	slices.SortFunc(peers, distanceCmp)
+
+	return peers, nil
 }
