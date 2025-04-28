@@ -1,41 +1,106 @@
 package cpl
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"github.com/ipfs/go-cid"
+	gocid "github.com/ipfs/go-cid"
+	"github.com/ipfs/kubo/core"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"log"
-	"os/exec"
+	"github.com/vicnetto/active-sybil-attack/logger"
 	"time"
 
 	kb "github.com/libp2p/go-libp2p-kbucket"
 )
 
-var IpfsPath = "ipfs"
 var KeySize = 256
 
-func GetCurrentClosest(CID string, timeout time.Duration) (string, error) {
-	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
+var log = logger.InitializeLogger()
 
-	cmd := exec.CommandContext(ctxWithTimeout, IpfsPath, "dht", "query", CID)
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
+func GeneratePidAndGetClosest(ctx context.Context, node *core.IpfsNode) (gocid.Cid, []peer.ID) {
+	var cid gocid.Cid
+	var peers []peer.ID
 
-	err := cmd.Run()
-	if err != nil {
-		log.Printf("getCurrentClosest() with CID: %s failed", CID)
-		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
+	for {
+		// Generate random peer using the Kubo function
+		randomPid, err := node.DHT.WAN.RoutingTable().GenRandPeerID(0)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		cid, err = gocid.Decode(randomPid.String())
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		log.Info.Printf("Gettingaaa closest peers to %s...\n\n", cid.String())
+
+		timeoutCtx, cancelTimeoutCtx := context.WithTimeout(ctx, 30*time.Second)
+
+		// Get the closest peers to verify the CPL of each one
+		peers, err = node.DHT.WAN.GetClosestPeers(timeoutCtx, string(cid.Hash()))
+		if err != nil {
+			log.Error.Printf("  %s", err)
+			cancelTimeoutCtx()
+			continue
+		}
+
+		cancelTimeoutCtx()
+		break
 	}
 
-	return out.String(), err
+	return cid, peers
 }
 
-func CountInCpl(cid cid.Cid, closestPeersToCid []string) []int {
+func GeneratePidAndGetClosestAsString(ctx context.Context, node *core.IpfsNode) (gocid.Cid, []string) {
+	cid, closest := GeneratePidAndGetClosest(ctx, node)
+
+	var closestAsString []string
+	for _, pid := range closest {
+		closestAsString = append(closestAsString, pid.String())
+	}
+
+	return cid, closestAsString
+}
+
+func GetCurrentClosest(ctx context.Context, cid gocid.Cid, node *core.IpfsNode, timeout time.Duration) ([]peer.ID, error) {
+	var peers []peer.ID
+	var err error
+
+	for {
+		ctxTimeout, cancelCtxTimeout := context.WithTimeout(ctx, timeout)
+
+		log.Info.Printf("Getting closest peers to %s...", cid.String())
+		peers, err = node.DHT.WAN.GetClosestPeers(ctxTimeout, string(cid.Hash()))
+
+		if err != nil {
+			log.Error.Printf("  %s.. trying again!", err)
+			cancelCtxTimeout()
+			continue
+		}
+
+		cancelCtxTimeout()
+		break
+	}
+
+	return peers, nil
+}
+
+func GetCurrentClosestAsString(ctx context.Context, cid gocid.Cid, node *core.IpfsNode, timeout time.Duration) ([]string, error) {
+	closest, err := GetCurrentClosest(ctx, cid, node, timeout)
+	if err != nil {
+		return nil, err
+	}
+
+	var closestAsString []string
+	for _, pid := range closest {
+		closestAsString = append(closestAsString, pid.String())
+	}
+
+	return closestAsString, nil
+}
+
+func CountInCpl(cid gocid.Cid, closestPeersToCid []string) []int {
 	counts := make([]int, KeySize)
 
 	// Convert CID to hash and after to bytes
