@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"github.com/vicnetto/active-sybil-attack/logger"
+	ipfspeer "github.com/vicnetto/active-sybil-attack/node/peer"
 	"github.com/vicnetto/active-sybil-attack/utils/k-closest-cpl/cpl"
 	"os"
-	"strings"
 	"time"
 
 	gocid "github.com/ipfs/go-cid"
@@ -13,34 +15,36 @@ import (
 
 var k = 20
 
+var log = logger.InitializeLogger()
+
 type FlagConfig struct {
-	cid *string
+	cid string
+}
+
+func help() func() {
+	return func() {
+		fmt.Println("Usage:", os.Args[0], "[flags]:")
+		fmt.Println("    -cid -- Tested CID")
+	}
 }
 
 func treatFlags() *FlagConfig {
 	flagConfig := FlagConfig{}
 
-	flagConfig.cid = flag.String("cid", "", "Goal eclipsed CID")
-	flag.Parse()
-
-	var Usage = func() {
-		_, err := fmt.Fprintf(os.Stderr, "Usage of ./k-closest-clp [flags]:\n")
-		if err != nil {
-			return
-		}
-
-		flag.PrintDefaults()
-	}
+	flag.StringVar(&flagConfig.cid, "cid", "", "")
 
 	missingFlag := false
+	flag.Usage = help()
+	flag.Parse()
 
-	if len(*flagConfig.cid) == 0 {
-		fmt.Println("error: flag cid missing.")
+	if len(flagConfig.cid) == 0 {
+		log.Info.Println("error: flag cid missing.")
 		missingFlag = true
 	}
 
 	if missingFlag {
-		Usage()
+		log.Info.Println()
+		flag.Usage()
 		os.Exit(1)
 	}
 
@@ -50,32 +54,32 @@ func treatFlags() *FlagConfig {
 func main() {
 	flagConfig := treatFlags()
 
-	// Start the experiment:
-	fmt.Printf("Getting closest peers to %s...\n\n", *flagConfig.cid)
+	ctx, cancel := context.WithCancel(context.Background())
 
-	var closestList []string
-	for {
-		closest, err := cpl.GetCurrentClosest(*flagConfig.cid, 60*time.Second)
-		if closest == "" || err != nil {
-			fmt.Println("Retrying get closest peers...")
-			continue
-		}
-
-		closestList = strings.Split(strings.TrimSpace(closest), "\n")
-		break
-	}
-
-	decode, err := gocid.Decode(*flagConfig.cid)
+	var cid, err = gocid.Parse(flagConfig.cid)
 	if err != nil {
-		fmt.Println(err)
+		log.Error.Println("Invalid cid.")
 		return
 	}
 
-	counts := cpl.CountInCpl(decode, closestList)
+	clientConfig := ipfspeer.ConfigForNormalClient(0)
+	_, clientNode, err := ipfspeer.SpawnEphemeral(ctx, clientConfig)
+	if err != nil {
+		panic(err)
+	}
 
-	fmt.Println("- Per CPL -")
-	fmt.Printf("CPL:   ")
+	log.Info.Println("PID is up:", clientNode.Identity.String())
 
+	log.Info.Printf("Sleeping for 10 seconds...")
+	time.Sleep(10 * time.Second)
+
+	closest, err := cpl.GetCurrentClosestAsString(ctx, cid, clientNode, time.Second*30)
+	counts := cpl.CountInCpl(cid, closest)
+
+	log.Info.Println("Results)")
+	log.Info.Println("- Per CPL -")
+
+	var cplString string
 	sum := 0
 	for i := 0; i <= cpl.KeySize; i++ {
 		if sum == k {
@@ -83,12 +87,12 @@ func main() {
 		}
 
 		if counts[i] != 0 {
-			fmt.Printf("%3d ", i)
+			cplString += fmt.Sprintf("%3d ", i)
 			sum += counts[i]
 		}
 	}
 
-	fmt.Printf("\nCount: ")
+	var countString string
 	sum = 0
 	for i := 0; i <= cpl.KeySize; i++ {
 		if sum == k {
@@ -96,11 +100,14 @@ func main() {
 		}
 
 		if counts[i] != 0 {
-			fmt.Printf("%3d ", counts[i])
+			countString += fmt.Sprintf("%3d ", counts[i])
 			sum += counts[i]
 		}
 	}
-	fmt.Println()
 
+	log.Info.Println("CPL  :", cplString)
+	log.Info.Println("Count:", countString)
+
+	cancel()
 	return
 }
