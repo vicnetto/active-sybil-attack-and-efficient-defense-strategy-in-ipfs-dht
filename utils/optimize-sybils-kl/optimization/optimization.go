@@ -25,6 +25,7 @@ type Result struct {
 
 var Kl [][]float64
 var startNodesPerCpl [probability.MaxCpl]int
+var resultCount int
 
 func addClosestSybil(nodesPerCpl [probability.MaxCpl]int) [probability.MaxCpl]int {
 	minCpl, maxCpl := getMinAndMaxCpl(nodesPerCpl)
@@ -167,6 +168,7 @@ func sybilPositionOptimization(optimizationFlags Config, position Position, node
 		position.sybils += nodesPerCpl[position.cpl]
 
 		if position.nodeCount == probability.K {
+			resultCount++
 			score := scoreCountTotal(nodesPerCpl, position, optimizationFlags.ScorePriority)
 
 			if score > topScores[optimizationFlags.Top-1].Score && position.pathKl < optimizationFlags.MaxKl &&
@@ -239,6 +241,7 @@ func BeginSybilPositionOptimization(optimizationFlags Config) ([]Result, error) 
 			startMaximumCpl, 0, closestReliableNodeCpl}
 		sybilPositionOptimization(optimizationFlags, position, nodesPerCpl)
 	}
+	fmt.Println("Results:", resultCount)
 
 	if len(topScores) != 0 {
 		for i, score := range topScores {
