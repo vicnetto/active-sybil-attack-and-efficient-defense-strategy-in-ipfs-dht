@@ -4,13 +4,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	gocid "github.com/ipfs/go-cid"
 	"github.com/ipfs/kubo/core"
-	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p-kad-dht/qpeerset"
 	"github.com/vicnetto/active-sybil-attack/logger"
 	ipfspeer "github.com/vicnetto/active-sybil-attack/node/peer"
+	"github.com/vicnetto/active-sybil-attack/utils/k-closest-to-file/interact"
 	"github.com/vicnetto/active-sybil-attack/utils/xor-distance/mitigation"
-	"k-closest-to-file/interact"
 	_ "net/http/pprof"
 	"os"
 	"time"
@@ -75,11 +74,9 @@ func main() {
 	time.Sleep(10 * time.Second)
 
 	for currentTest := 0; currentTest < flags.quantity; currentTest++ {
-		var cidDecode gocid.Cid
-		var peers []peer.ID
-
 		log.Info.Printf("%d) Performing random lookups to verify the average distances calculated:", currentTest+1)
-		cidDecode, peers = mitigation.PerformRandomLookupReturningQueriedPeers(ctx, clientNode)
+		cidDecode, lookupResult := mitigation.PerformRandomLookupReturningQueriedPeersWithFullInformation(ctx, clientNode)
+		peers := lookupResult.AllPeersContacted.GetClosestInStates(qpeerset.PeerHeard, qpeerset.PeerWaiting, qpeerset.PeerQueried)
 
 		err := interact.StoreDHTLookupToFile(cidDecode, peers, "output")
 		if err != nil {
@@ -87,17 +84,37 @@ func main() {
 			return
 		}
 	}
-	clientNode.Close()
 
-	// lookups, _ := getRandomDHTLookups(100, "db")
+	// Obtain from DB:
+	// lookups, err := interact.GetRandomDHTLookups(100, "../../db")
+	// if err != nil {
+	// 	panic(err)
+	// }
 
+	// Obtain distance from each of the peers in the DB:
+	// for cid, peers := range lookups {
+	// 	targetCIDByte, _ := mh.FromB58String(cid.String())
+	// 	targetCIDKey := kspace.XORKeySpace.Key(targetCIDByte)
+
+	// 	aMultiHash, _ := mh.FromB58String(peers[20-1].String())
+	// 	aPeerKey := kspace.XORKeySpace.Key(aMultiHash)
+
+	// 	aDistance := aPeerKey.Distance(targetCIDKey)
+	// 	fmt.Println(aDistance)
+	// }
+
+	// Print peers in the DB:
 	// var index int
-	// for cid, ids := range lookups {
-	// 	log.Info.Printf("%d) CID: %s - contains %d peers", index+1, cid.String(), len(ids))
-	// 	// for i, id := range ids {
-	// 	// 	log.Info.Printf("  %3d. %s", i+1, id.String())
-	// 	// }
-	// 	index++
+	//  for cid, ids := range lookups {
+	//  log.Info.Printf("%d) CID: %s - contains %d peers", index+1, cid.String(), len(ids))
+	//  log.Info.Printf("CID) %s", cid.String())
+	//  for i, id := range peers {
+	//  	if i == 20 {
+	//   		break
+	//   	}
+	//   	log.Info.Printf("  %3d. %s", i+1, id.String())
+	//  }
+	//  index++
 	// }
 
 	log.Info.Printf("Finished!")
