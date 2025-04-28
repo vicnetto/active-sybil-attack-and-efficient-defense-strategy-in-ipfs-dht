@@ -7,10 +7,10 @@ import (
 )
 
 const K = 20
-const MaxCpl = 30
 const KlThreshold = 0.94
 const DefaultNetworkSize = 13239
 const KeySize = 256
+const MaxCpl = 30
 
 // UpdateIdealDistFromNetSize returns an array containing the probabilities associated with each CPL
 // - The code was extracted from the paper "Content Censorship in IPFS".
@@ -73,14 +73,14 @@ func GetAllPartialKl(probabilities []float64) [][]float64 {
 	return allPartialKl
 }
 
-func PrintPartialKl(kl [][]float64) {
+func PrintPartialKl(kl [][]float64, maxCpl int) {
 	fmt.Println("Table of KL's:")
 	fmt.Printf("N° of nodes: ")
 	for i := 0; i <= K; i++ {
 		fmt.Printf("%7d", i)
 	}
 
-	for i := 0; i < MaxCpl; i++ {
+	for i := 0; i < maxCpl; i++ {
 		fmt.Printf("\n     CPL %.2d)  ", i)
 
 		for j := 0; j <= K; j++ {
