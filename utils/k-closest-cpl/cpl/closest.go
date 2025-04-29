@@ -33,7 +33,7 @@ func GeneratePidAndGetClosest(ctx context.Context, node *core.IpfsNode) (gocid.C
 			fmt.Println(err)
 			continue
 		}
-		log.Info.Printf("Getting closest peers to %s...\n\n", cid.String())
+		log.Info.Printf("Getting closest peers to %s...", cid.String())
 
 		timeoutCtx, cancelTimeoutCtx := context.WithTimeout(ctx, 30*time.Second)
 
