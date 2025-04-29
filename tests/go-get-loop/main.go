@@ -4,19 +4,23 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/go-errors/errors"
 	"github.com/ipfs/boxo/path"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/vicnetto/active-sybil-attack/logger"
 	ipfspeer "github.com/vicnetto/active-sybil-attack/node/peer"
-	"log"
+	_ "net/http/pprof"
 	"os"
+	"runtime"
 	"time"
 
 	gocid "github.com/ipfs/go-cid"
 )
 
-type Flags struct {
-	cid                   *string
+var log = logger.InitializeLogger()
+
+type FlagConfig struct {
+	cid                   string
+	providerPeerId        string
 	numberOfTests         int
 	recurrent             int
 	numberOfVerifications int
@@ -25,26 +29,34 @@ type Flags struct {
 func help() func() {
 	return func() {
 		fmt.Println("\nUsage:", os.Args[0], "[flags]:")
+		fmt.Println("  -cid <string> -- CID to be tested")
+		fmt.Println("  -providerPeerId <string> -- CID to be tested")
 		fmt.Println("  -verifications <int> -- Number of verifications (default: 1)")
 		fmt.Println("  -tests <int> -- Number of tests per verification (default: 20)")
 		fmt.Println("  -recurrent <int> -- Minutes between each verification (default: 30 minutes)")
 	}
 }
 
-func treatFlags() *Flags {
-	flags := Flags{}
-	flags.cid = flag.String("cid", "", "CID to be obtained")
-	flag.IntVar(&flags.numberOfVerifications, "verifications", 1, "Number of verifications")
-	flag.IntVar(&flags.numberOfTests, "tests", 20, "Number of tests per verification")
-	flag.IntVar(&flags.recurrent, "recurrent", 30, "Minutes between each verification")
+func treatFlags() *FlagConfig {
+	flagConfig := FlagConfig{}
+	flag.StringVar(&flagConfig.cid, "cid", "", "CID to be obtained")
+	flag.StringVar(&flagConfig.providerPeerId, "providerPeerId", "", "")
+	flag.IntVar(&flagConfig.numberOfVerifications, "verifications", 1, "Number of verifications")
+	flag.IntVar(&flagConfig.numberOfTests, "tests", 20, "Number of tests per verification")
+	flag.IntVar(&flagConfig.recurrent, "recurrent", 30, "Minutes between each verification")
 
 	flag.Usage = help()
 	flag.Parse()
 
 	missingFlag := false
 
-	if len(*flags.cid) == 0 {
+	if len(flagConfig.cid) == 0 {
 		fmt.Println("error: flag cid missing.")
+		missingFlag = true
+	}
+
+	if len(flagConfig.providerPeerId) == 0 {
+		fmt.Println("error: flag providerPeerId missing.")
 		missingFlag = true
 	}
 
@@ -53,7 +65,7 @@ func treatFlags() *Flags {
 		os.Exit(1)
 	}
 
-	return &flags
+	return &flagConfig
 }
 
 func savePrProviders(destination map[string]int, origin map[string]int) map[string]int {
@@ -65,38 +77,77 @@ func savePrProviders(destination map[string]int, origin map[string]int) map[stri
 }
 
 func printStats(fileObtained int, eclipsePrProviders map[string]int, filePrProviders map[string]int, numberOfTests int) {
-	fmt.Printf("** Eclipsed: %d (%.2f%%)\n", numberOfTests-fileObtained,
+	log.Info.Printf("** Eclipsed: %d (%.2f%%)\n", numberOfTests-fileObtained,
 		float32(numberOfTests-fileObtained)/float32(numberOfTests)*100)
 
 	for key, value := range eclipsePrProviders {
-		fmt.Printf("*** [%d: %s]\n", value, key)
+		log.Info.Printf("*** [%d: %s]\n", value, key)
 	}
 
-	fmt.Printf("** Obtained: %d (%.2f%%)\n", fileObtained,
+	log.Info.Printf("** Obtained: %d (%.2f%%)\n", fileObtained,
 		float32(fileObtained)/float32(numberOfTests)*100)
 
 	for key, value := range filePrProviders {
-		fmt.Printf("*** [%d: %s]\n", value, key)
+		log.Info.Printf("*** [%d: %s]\n", value, key)
+	}
+}
+
+func verifyIfFileIsEclipsed(cidPath path.ImmutablePath, fileObtained *int,
+	eclipsePrProviders map[string]int, filePrProviders map[string]int) {
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
+	clientConfig := ipfspeer.ConfigForNormalClient(65000)
+	clientIPFS, clientNode, err := ipfspeer.SpawnEphemeral(ctx, clientConfig)
+	if err != nil {
+		panic(err)
+	}
+	defer clientNode.Close()
+
+	log.Info.Println("PID is up:", clientNode.Identity.String())
+
+	ctxTimeout, ctxTimeoutCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer ctxTimeoutCancel()
+
+	// Get the file
+	_, err = clientIPFS.Unixfs().Get(ctxTimeout, cidPath)
+	found, prProvider := dht.GetLookupInformation()
+
+	if found {
+		*fileObtained++
+		log.Info.Println("File obtained!")
+
+		filePrProviders[prProvider]++
+	} else {
+		if len(prProvider) == 0 {
+			log.Info.Println("No provider found!")
+			prProvider = "No provider found"
+		}
+
+		log.Info.Println("File eclipsed!")
+		eclipsePrProviders[prProvider]++
 	}
 }
 
 func main() {
-	flags := treatFlags()
+	// go func() {
+	// 	fmt.Println(http.ListenAndServe("localhost:6060", nil))
+	// }()
 
-	location, _ := time.LoadLocation("Europe/Paris")
+	flags := treatFlags()
 
 	globalFilePrProviders := map[string]int{}
 	globalEclipsePrProviders := map[string]int{}
 	var globalFileObtained int
 
-	// Create the context
-	decodedCid, err := gocid.Decode(*flags.cid)
+	decodedCid, err := gocid.Decode(flags.cid)
 	if err != nil {
-		fmt.Println(err)
+		log.Error.Println(err)
 		return
 	}
 
 	pathCid := path.FromCid(decodedCid)
+	dht.SetRealProvider(flags.providerPeerId)
 
 	for verification := 1; verification <= flags.numberOfVerifications; verification++ {
 		var fileObtained int
@@ -104,58 +155,17 @@ func main() {
 		eclipsePrProviders := map[string]int{}
 
 		for i := 1; i <= flags.numberOfTests; i++ {
-			fmt.Printf("\n%s\n", time.Now().In(location).Format("02-01-2006-15:04:05-CEST"))
-			ctx, cancel := context.WithCancel(context.Background())
+			verifyIfFileIsEclipsed(pathCid, &fileObtained, eclipsePrProviders, filePrProviders)
 
-			fmt.Printf("%d) Instantiating node\n", i)
-			clientConfig := ipfspeer.ConfigForNormalClient(65000)
-			clientIPFS, clientNode, err := ipfspeer.SpawnEphemeral(ctx, clientConfig)
-			if err != nil {
-				panic(err)
-			}
-
-			ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
-
-			// Add file to our local storage
-			_, err = clientIPFS.Unixfs().Get(ctx, pathCid)
-
-			if err != nil {
-				if errors.Is(err, context.DeadlineExceeded) {
-					if len(dht.GetPRProvider()) == 0 {
-						fmt.Println("No provider found!")
-					}
-
-					fmt.Println("File eclipsed!")
-					eclipsePrProviders[dht.GetPRProvider()]++
-				} else {
-					fmt.Println("Error getting the file:", err)
-					continue
-				}
-			} else {
-				fileObtained++
-				fmt.Println("File obtained!")
-
-				filePrProviders[dht.GetPRProvider()]++
-			}
-
-			err = clientNode.Close()
-			if err != nil {
-				panic(err)
-			}
-
-			fmt.Println("Sleeping 5 seconds after stopping node...")
-			time.Sleep(5 * time.Second)
+			runtime.GC()
+			log.Info.Println("Sleeping 5 seconds after stopping node...")
 			dht.ResetPRProvider()
-
-			cancel()
 		}
 
-		fmt.Printf("\n%s\n", time.Now().In(location).Format("02-01-2006-15:04:05-CEST"))
-		fmt.Printf("* Stats %d (total of %d tests) >\n", verification, flags.numberOfTests)
+		log.Info.Printf("* Verification %d (total of %d tests) >\n", verification, flags.numberOfTests)
 		printStats(fileObtained, eclipsePrProviders, filePrProviders, flags.numberOfTests)
 
-		fmt.Printf("\n%s\n", time.Now().In(location).Format("02-01-2006-15:04:05-CEST"))
-		fmt.Printf("* Global stats of %d verifications (total of %d tests) >\n", verification, flags.numberOfTests*verification)
+		log.Info.Printf("* Global stats of %d verifications (total of %d tests) >\n", verification, flags.numberOfTests*verification)
 		globalFileObtained += fileObtained
 		globalEclipsePrProviders = savePrProviders(globalEclipsePrProviders, eclipsePrProviders)
 		globalFilePrProviders = savePrProviders(globalFilePrProviders, filePrProviders)
@@ -165,8 +175,9 @@ func main() {
 			return
 		}
 
+		runtime.GC()
 		fmt.Println()
-		log.Println("Sleeping for", flags.recurrent, "minutes before continuing...")
+		log.Info.Println("Sleeping for", flags.recurrent, "minutes before continuing...")
 		time.Sleep(time.Duration(flags.recurrent) * time.Minute)
 	}
 }
