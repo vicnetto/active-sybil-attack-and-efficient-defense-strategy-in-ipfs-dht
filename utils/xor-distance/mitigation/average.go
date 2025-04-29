@@ -7,8 +7,8 @@ import (
 )
 
 var keySpace = 255
-var alpha = 1.0 / 16.0
-var beta = 0.5
+var alpha = 0.1
+var beta = 0.0
 
 func SetParameters(alphaParam float64, betaParam float64) {
 	alpha = alphaParam
@@ -46,12 +46,12 @@ func (mt MeanType) String() string {
 
 type WelfordAverage struct {
 	count *big.Int
-	
-	mean, sumDeltaMean         *big.Float
-	weightedMean, sumDeltaWeightedMean         *big.Float
-	cplSum int
 
-	errorSquared        *big.Float
+	mean, sumDeltaMean                 *big.Float
+	weightedMean, sumDeltaWeightedMean *big.Float
+	cplSum                             int
+
+	errorSquared *big.Float
 }
 
 // NewWelfordMovingAverage initializes a new WelfordAverage instance
@@ -68,17 +68,7 @@ func NewWelfordMovingAverage() *WelfordAverage {
 
 // NewWelfordMovingAverageFromMean initializes a new WelfordAverage from mean
 func NewWelfordMovingAverageFromMean(average WelfordAverage) *WelfordAverage {
-	// return &WelfordAverage{
-	// 	count:                new(big.Int).Set(average.count),
-	// 	sumDeltaMean:         new(big.Float).Set(average.sumDeltaMean),
-	// 	sumDeltaWeightedMean: new(big.Float).Set(average.sumDeltaMean),
-	// 	mean:                 new(big.Float).SetInt(average.GetAverage(MeanStdDev)),
-	// 	weightedMean:         new(big.Float).SetInt(average.GetAverage(MeanStdDev)),
-	// 	errorSquared:         big.NewFloat(0),
-	// 	cplSum:               average.cplSum,
-	// }
-	
-	newAverage := NewWelfordMovingAverage() 
+	newAverage := NewWelfordMovingAverage()
 	newAverage.Add(average.GetAverage(Mean))
 	return newAverage
 }
@@ -156,6 +146,13 @@ func (w *WelfordAverage) Add(value *big.Int) {
 	valueFloat := new(big.Float).SetInt(value)
 	countFloat := new(big.Float).SetInt(w.count)
 
+	// For the error
+	if w.count.Cmp(big.NewInt(2)) >= 0 {
+		errorFromAverage := new(big.Float).Sub(w.weightedMean, new(big.Float).SetInt(value))
+		w.errorSquared.Add(w.errorSquared,
+			new(big.Float).Mul(errorFromAverage, errorFromAverage))
+	}
+
 	// For the weightedMean
 	deltaWeightedMean := new(big.Float).Sub(valueFloat, w.weightedMean)
 	w.setWeightedMean(value)
@@ -170,22 +167,15 @@ func (w *WelfordAverage) Add(value *big.Int) {
 
 	// For the CPL
 	w.cplSum += keySpace - int(bigmath.Log10(new(big.Int).Set(value))/bigmath.Log10(big.NewInt(2)))
-
-	// For the error
-	if w.count.Cmp(big.NewInt(2)) >= 0 {
-		errorFromAverage := new(big.Float).Sub(w.weightedMean, new(big.Float).SetInt(value))
-		w.errorSquared.Add(w.errorSquared,
-			new(big.Float).Mul(errorFromAverage, errorFromAverage))
-	}
 }
 
 func (w *WelfordAverage) setWeightedMean(value *big.Int) {
-	if w.weightedMean.Cmp(big.NewFloat(0)) == 0 {
+	if w.count.Int64() == 1 {
 		w.weightedMean = new(big.Float).SetInt(value)
 		return
 	}
 
-	// maxDistanceCorrected = (1 - alpha) * maxDistanceCorrected + alpha * value
+	// st+1 = (1 - alpha) * value + alpha * st
 	leftFactor := big.NewFloat(1.0 - alpha)
 	left := new(big.Float).Mul(leftFactor, w.weightedMean)
 
