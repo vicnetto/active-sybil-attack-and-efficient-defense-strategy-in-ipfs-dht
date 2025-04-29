@@ -3,6 +3,7 @@ package mitigation
 import (
 	"context"
 	"fmt"
+	gocid "github.com/ipfs/go-cid"
 	"github.com/ipfs/kubo/core"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 	kspace "github.com/libp2p/go-libp2p-kbucket/keyspace"
@@ -10,7 +11,7 @@ import (
 	"github.com/multiformats/go-base32"
 	mh "github.com/multiformats/go-multihash"
 	"github.com/vicnetto/active-sybil-attack/logger"
-	"math"
+	"github.com/vicnetto/active-sybil-attack/utils/k-closest-to-file/interact"
 	"math/big"
 	"math/rand"
 	"os"
@@ -183,45 +184,63 @@ func getValidPeerToQuery(ctx context.Context, clientNode *core.IpfsNode, already
 	return nextPeerToQuery
 }
 
-func GetFarthestKAverage(ctx context.Context, clientNode *core.IpfsNode, nodesToContact int, alreadyQueriedPeers *[]peer.ID) (WelfordAverage, error) {
+func GetFarthestKAverageByQuery(ctx context.Context, clientNode *core.IpfsNode, nodesToContact int, initialDistance *WelfordAverage) (WelfordAverage, error) {
+	return GetFarthestKAverage(ctx, clientNode, nodesToContact, &[]peer.ID{}, initialDistance, "")
+}
+
+func GetFarthestKAverageByQueryWithAlreadyQueried(ctx context.Context, clientNode *core.IpfsNode, nodesToContact int, alreadyQueriedPeers *[]peer.ID, initialDistance *WelfordAverage) (WelfordAverage, error) {
+	return GetFarthestKAverage(ctx, clientNode, nodesToContact, alreadyQueriedPeers, initialDistance, "")
+}
+
+func GetFarthestKAverageByDb(ctx context.Context, clientNode *core.IpfsNode, nodesToContact int, initialDistance *WelfordAverage, dbPath string) (WelfordAverage, error) {
+	return GetFarthestKAverage(ctx, clientNode, nodesToContact, &[]peer.ID{}, initialDistance, dbPath)
+}
+
+func GetFarthestKAverage(ctx context.Context, clientNode *core.IpfsNode, nodesToContact int, alreadyQueriedPeers *[]peer.ID,
+	initialDistance *WelfordAverage, dbPath string) (WelfordAverage, error) {
 	if alreadyQueriedPeers == nil {
 		alreadyQueriedPeers = &[]peer.ID{}
 	}
 
-	var minCplResponse []int
-	var maxDistanceResponse []*big.Int
+	// var minCplResponse []int
+	// var maxDistanceResponse []*big.Int
 	var maxDistanceResponseStd = NewWelfordMovingAverage()
-	minCplAverage := float64(0)
+	// minCplAverage := float64(0)
+
+	if initialDistance != nil {
+		log.Info.Println("Starting average with previous value calculated:", ToSciNotation((*initialDistance).GetAverage(MeanStdDev)))
+		maxDistanceResponseStd = NewWelfordMovingAverageFromMean(*initialDistance)
+	}
 
 	log.Info.Printf("Obtaining minCpl and maxDistance by contacting %d peers...", nodesToContact)
 
-	var currentPeer peer.ID
 	for peersContacted := 0; peersContacted < nodesToContact; peersContacted++ {
-		currentPeer = getValidPeerToQuery(ctx, clientNode, *alreadyQueriedPeers)
-		*alreadyQueriedPeers = append(*alreadyQueriedPeers, currentPeer)
+		var minCpl int
+		var maxDistance *big.Int
+		var err error
 
-		log.Info.Printf("%d) Querying %s for their closest peers...", peersContacted+1, currentPeer.String())
-		ctxTimeout, cancelTimeout := context.WithTimeout(ctx, 3*time.Minute)
-		queryClosest, err := QueryPeerForKClosestFromItself(ctxTimeout, clientNode, currentPeer)
-		if err != nil {
-			log.Error.Println("Error while querying the peer:", err.Error())
-			log.Error.Println("Retrying with another PID...")
-			peersContacted--
-			cancelTimeout()
-			continue
+		// In case the dbPath is non empty, it must get the closest peers from the DB.
+		if len(dbPath) != 0 {
+			log.Info.Printf("%d) Getting random DHT lookup from the DB...", peersContacted+1)
+			minCpl, maxDistance, err = GetFarthestKByDb(dbPath, alreadyQueriedPeers)
+			if err != nil {
+				return WelfordAverage{}, err
+			}
+		} else {
+			// Case contrary, ask a random peer directly.
+			log.Info.Printf("%d) Querying random peer for their closest peers...", peersContacted+1)
+			minCpl, maxDistance, err = GetFarthestKByQuery(ctx, clientNode, alreadyQueriedPeers)
 		}
 
-		minCpl, maxDistance := getFarthestDistance(currentPeer.String(), queryClosest, false)
-
-		minCplResponse = append(minCplResponse, minCpl)
-		minCplAverage += float64(minCpl)
-		maxDistanceResponse = append(maxDistanceResponse, maxDistance)
+		// minCplResponse = append(minCplResponse, minCpl)
+		// minCplAverage += float64(minCpl)
+		// maxDistanceResponse = append(maxDistanceResponse, maxDistance)
 		maxDistanceResponseStd.Add(maxDistance)
 
 		log.Info.Printf("  Min CPL: %d", minCpl)
 		log.Info.Printf("  Max Distance: %s (%s)", ToSciNotation(maxDistance), maxDistance)
 		log.Info.Printf("  Average:")
-		log.Info.Printf("    Min CPL: %f (%d)", minCplAverage/float64(peersContacted+1), maxDistanceResponseStd.getCPL())
+		log.Info.Printf("    Min CPL: %d", maxDistanceResponseStd.GetAverage(CPL))
 		log.Info.Printf("    Mean, STD, M + STD: %s, %s, %s",
 			ToSciNotation(maxDistanceResponseStd.GetAverage(Mean)),
 			ToSciNotation(maxDistanceResponseStd.GetStdDevAsInt(Mean)),
@@ -230,18 +249,71 @@ func GetFarthestKAverage(ctx context.Context, clientNode *core.IpfsNode, nodesTo
 			ToSciNotation(maxDistanceResponseStd.GetAverage(WeightedMean)),
 			ToSciNotation(maxDistanceResponseStd.GetStdDevAsInt(WeightedMean)),
 			ToSciNotation(maxDistanceResponseStd.GetAverage(WeightedMeanStdDev)))
-
-		cancelTimeout()
+		log.Info.Printf("    Error Squared : %s",
+			ToSciNotation(maxDistanceResponseStd.GetErrorSquaredAverage()))
 	}
 
-	maxDistanceAverage := big.NewInt(0)
-	// Finding the minCpl average
-	for i := 0; i < nodesToContact; i++ {
-		maxDistanceAverage = maxDistanceAverage.Add(maxDistanceAverage, maxDistanceResponse[i])
-	}
+	// maxDistanceAverage := big.NewInt(0)
+	// // Finding the minCpl average
+	// for i := 0; i < nodesToContact; i++ {
+	// 	maxDistanceAverage = maxDistanceAverage.Add(maxDistanceAverage, maxDistanceResponse[i])
+	// }
 
-	minCplAverage = math.Round(minCplAverage / float64(len(minCplResponse)))
-	maxDistanceAverage = maxDistanceAverage.Div(maxDistanceAverage, big.NewInt(int64(len(maxDistanceResponse))))
+	// minCplAverage = math.Round(minCplAverage / float64(len(minCplResponse)))
+	// maxDistanceAverage = maxDistanceAverage.Div(maxDistanceAverage, big.NewInt(int64(len(maxDistanceResponse))))
 
 	return *maxDistanceResponseStd, nil
+}
+
+func GetFarthestKByQuery(ctx context.Context, clientNode *core.IpfsNode, alreadyQueriedPeers *[]peer.ID) (int, *big.Int, error) {
+	currentPeer := getValidPeerToQuery(ctx, clientNode, *alreadyQueriedPeers)
+	*alreadyQueriedPeers = append(*alreadyQueriedPeers, currentPeer)
+
+	log.Info.Printf("  CID: %s", currentPeer.String())
+
+	ctxTimeout, cancelTimeout := context.WithTimeout(ctx, 3*time.Minute)
+	queryClosest, err := QueryPeerForKClosestFromItself(ctxTimeout, clientNode, currentPeer)
+	if err != nil {
+		log.Error.Println("Error while querying the peer:", err.Error())
+		log.Error.Println("Retrying with another PID...")
+		cancelTimeout()
+		return 0, big.NewInt(0), err
+	}
+
+	minCpl, maxDistance := getFarthestDistance(currentPeer.String(), queryClosest, false)
+
+	cancelTimeout()
+	return minCpl, maxDistance, nil
+}
+
+func GetFarthestKByDb(dbPath string, alreadyQueriedPeers *[]peer.ID) (int, *big.Int, error) {
+	var cid gocid.Cid
+	var peers []peer.ID
+	var err error
+
+	for {
+		cid, peers, err = interact.GetRandomDHTLookup(dbPath)
+		if err != nil {
+			return 0, big.NewInt(0), err
+		}
+
+		// Verify if the peer wasn't verified already
+		for _, pid := range *alreadyQueriedPeers {
+			if pid.String() == cid.String() {
+				continue
+			}
+		}
+
+		break
+	}
+
+	log.Info.Printf("  CID: %s", cid.String())
+
+	peers, err = interact.GetClosestKFromContactedPeers(cid, peers)
+	if err != nil {
+		return 0, big.NewInt(0), err
+	}
+
+	minCpl, maxDistance := getFarthestDistance(cid.String(), peers, false)
+	return minCpl, maxDistance, err
 }

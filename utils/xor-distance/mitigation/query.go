@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/kubo/core"
+	"github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/qpeerset"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 	kspace "github.com/libp2p/go-libp2p-kbucket/keyspace"
@@ -21,18 +22,20 @@ type Result struct {
 }
 
 func PerformRandomLookupReturningQueriedPeers(ctx context.Context, clientNode *core.IpfsNode) (cid.Cid, []peer.ID) {
-	randomId, err := clientNode.DHT.WAN.RoutingTable().GenRandPeerID(0)
-	if err != nil {
-		log.Error.Println("Error while generating a random peer ID:", err)
-	}
-
-	cidDecode, err := cid.Decode(randomId.String())
-	if err != nil {
-		log.Error.Println("Error while decoding random generated PID:", err)
-	}
-
 	var allPeersReceived *qpeerset.QueryPeerset
+	var cidDecode cid.Cid
+
 	for {
+		randomId, err := clientNode.DHT.WAN.RoutingTable().GenRandPeerID(0)
+		if err != nil {
+			log.Error.Println("Error while generating a random peer ID:", err)
+		}
+
+		cidDecode, err = cid.Decode(randomId.String())
+		if err != nil {
+			log.Error.Println("Error while decoding random generated PID:", err)
+		}
+
 		ctxTimeout, ctxTimeoutCancel := context.WithTimeout(ctx, 120*time.Second)
 		log.Info.Printf("  Getting closest peers to %s...", cidDecode.String())
 		_, allPeersReceived, err = clientNode.DHT.WAN.GetPathClosestPeers(ctxTimeout, string(cidDecode.Hash()))
@@ -48,6 +51,38 @@ func PerformRandomLookupReturningQueriedPeers(ctx context.Context, clientNode *c
 	}
 
 	return cidDecode, allPeersReceived.GetClosestInStates(qpeerset.PeerHeard, qpeerset.PeerWaiting, qpeerset.PeerQueried)
+}
+
+func PerformRandomLookupReturningQueriedPeersWithFullInformation(ctx context.Context, clientNode *core.IpfsNode) (cid.Cid, dht.LookupWithFollowupResult) {
+	var lookupResult *dht.LookupWithFollowupResult
+	var cidDecode cid.Cid
+
+	for {
+		randomId, err := clientNode.DHT.WAN.RoutingTable().GenRandPeerID(0)
+		if err != nil {
+			log.Error.Println("Error while generating a random peer ID:", err)
+		}
+
+		cidDecode, err = cid.Decode(randomId.String())
+		if err != nil {
+			log.Error.Println("Error while decoding random generated PID:", err)
+		}
+
+		ctxTimeout, ctxTimeoutCancel := context.WithTimeout(ctx, 120*time.Second)
+		log.Info.Printf("  Getting closest peers to %s...", cidDecode.String())
+		lookupResult, err = clientNode.DHT.WAN.GetPathClosestPeersFullInformation(ctxTimeout, string(cidDecode.Hash()))
+		if err != nil || lookupResult == nil || lookupResult.AllPeersContacted == nil {
+			log.Error.Println("Error while asking the closest peers to the CID:", err)
+			log.Error.Println("Retrying...")
+			ctxTimeoutCancel()
+			continue
+		}
+
+		ctxTimeoutCancel()
+		break
+	}
+
+	return cidDecode, *lookupResult
 }
 
 func CalculateAverageDistancePerPeerQuantity(ctx context.Context, maxPeerQuantity int) []WelfordAverage {
@@ -72,7 +107,7 @@ func CalculateAverageDistancePerPeerQuantity(ctx context.Context, maxPeerQuantit
 		time.Sleep(10 * time.Second)
 		fmt.Println()
 
-		distanceAverage, err := GetFarthestKAverage(ctx, clientNode, peerQuantity+1, &alreadyQueriedPeers)
+		distanceAverage, err := GetFarthestKAverage(ctx, clientNode, peerQuantity+1, &alreadyQueriedPeers, nil, "")
 		if err != nil {
 			log.Error.Println("Error getting farthest k average:", err.Error())
 			peerQuantity--
@@ -134,5 +169,39 @@ func CountPeersPerAverage(cidDecode cid.Cid, maxDistancePerPeerQuantity []Welfor
 
 			(*peersPerDistance)[maxDistance] = currentInfo
 		}
+
+		// for mt := MeanType(0); mt <= LastMeanType; mt++ {
+		// 	currentInfo := (*peersPerDistance)
+
+		// 	toPrint += fmt.Sprintf(" %s: %d (%s);", mt.String(), peersPerDistance[distance][mt],
+		// 		mitigation.ToSciNotation(distance.GetAverage(mt)))
+		// }
+	}
+
+	// Minimum should be k=20, as in a standard scenario at least 20 will be sent.
+	for _, maxDistance := range maxDistancePerPeerQuantity {
+		currentInfo := (*peersPerDistance)[maxDistance]
+
+		if currentInfo[Mean] < 20 {
+			currentInfo[Mean] = 20
+		}
+
+		if currentInfo[MeanStdDev] < 20 {
+			currentInfo[MeanStdDev] = 20
+		}
+
+		if currentInfo[WeightedMean] < 20 {
+			currentInfo[WeightedMean] = 20
+		}
+
+		if currentInfo[WeightedMeanStdDev] < 20 {
+			currentInfo[WeightedMeanStdDev] = 20
+		}
+
+		if currentInfo[CPL] < 20 {
+			currentInfo[CPL] = 20
+		}
+
+		(*peersPerDistance)[maxDistance] = currentInfo
 	}
 }
