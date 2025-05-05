@@ -42,18 +42,6 @@ type CidStatus struct {
 	lastTest            time.Time
 }
 
-func initializeMapOfCidStatus(cidList []gocid.Cid) map[gocid.Cid]CidStatus {
-	var allCidStatus = map[gocid.Cid]CidStatus{}
-	for _, cid := range cidList {
-		status := CidStatus{}
-		status.filePrProviders = make(map[string]int)
-		status.eclipsePrProviders = make(map[string]int)
-		allCidStatus[cid] = status
-	}
-
-	return allCidStatus
-}
-
 func help() func() {
 	return func() {
 		fmt.Println("\nUsage:", os.Args[0], "[flags]:")
@@ -83,11 +71,6 @@ func treatFlags() Flags {
 
 	missingFlag := false
 
-	if len(flags.privateKey) == 0 {
-		log.Info.Println("error: flag privateKey missing.")
-		missingFlag = true
-	}
-
 	if len(flags.cidFilepath) == 0 {
 		log.Info.Println("error: flag cid missing.")
 		missingFlag = true
@@ -106,6 +89,18 @@ func treatFlags() Flags {
 	}
 
 	return flags
+}
+
+func initializeMapOfCidStatus(cidList []gocid.Cid) map[gocid.Cid]CidStatus {
+	var allCidStatus = map[gocid.Cid]CidStatus{}
+	for _, cid := range cidList {
+		status := CidStatus{}
+		status.filePrProviders = make(map[string]int)
+		status.eclipsePrProviders = make(map[string]int)
+		allCidStatus[cid] = status
+	}
+
+	return allCidStatus
 }
 
 func printStats(status CidStatus, numberOfTests int) {
@@ -190,7 +185,7 @@ func readCidListFromFile(cidFilepath string) []gocid.Cid {
 	return testCid
 }
 
-func decodeIdentifiers(flags Flags) ([]gocid.Cid, peer.ID) {
+func decodeIdentifiers(flags Flags) ([]gocid.Cid, peer.ID, ipfspeer.Config) {
 	cidList := readCidListFromFile(flags.cidFilepath)
 
 	providerPid, err := peer.Decode(flags.providerPid)
@@ -198,8 +193,17 @@ func decodeIdentifiers(flags Flags) ([]gocid.Cid, peer.ID) {
 		log.Error.Println("Error when decoding the provider PID.")
 		os.Exit(1)
 	}
+	dht.SetRealProvider(providerPid.String())
 
-	return cidList, providerPid
+	var clientConfig ipfspeer.Config
+	if len(flags.privateKey) != 0 {
+		ip := "0.0.0.0"
+		clientConfig = ipfspeer.ConfigForSybil(&ip, flags.port, flags.privateKey)
+	} else {
+		clientConfig = ipfspeer.ConfigForRandomNode(flags.port)
+	}
+
+	return cidList, providerPid, clientConfig
 }
 
 func logCurrentCidStatus(nodePid peer.ID, cidStatus map[gocid.Cid]CidStatus, flags Flags) error {
@@ -276,32 +280,23 @@ func main() {
 	start := time.Now()
 	flags := treatFlags()
 
-	cidList, providerPid := decodeIdentifiers(flags)
+	cidList, providerPid, clientConfig := decodeIdentifiers(flags)
 
 	log.Info.Println("CIDs to test:", cidList)
-	log.Info.Println("Provider pid:", providerPid.String())
+	log.Info.Println("Provider:", providerPid.String())
 
-	dht.SetRealProvider(flags.providerPid)
+	cidStatus := initializeMapOfCidStatus(cidList)
 
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	defer ctxCancel()
 
-	cidStatus := initializeMapOfCidStatus(cidList)
-
-	ip := "0.0.0.0"
-	clientConfig := ipfspeer.ConfigForSybil(&ip, flags.port, flags.privateKey)
 	_, clientNode, err := ipfspeer.SpawnEphemeral(ctx, clientConfig)
-	defer func(clientNode *core.IpfsNode) {
-		err := clientNode.Close()
-		if err != nil {
-
-		}
-	}(clientNode)
+	defer clientNode.Close()
 	if err != nil {
 		panic(err)
 	}
 
-	log.Info.Println("PID is up:", clientNode.Identity.String())
+	log.Info.Println("Peer is UP:", clientNode.Identity.String())
 
 	testStartTime := start
 	for current := 1; current <= flags.verifications; current++ {
