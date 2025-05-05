@@ -54,11 +54,11 @@ func ConfigForSybil(ip *string, port int, privateKey string) Config {
 	return peerConfig
 }
 
-func ConfigForNormalClient(port int) Config {
+func ConfigForSpecificNode(port int, privateKey string) Config {
 	// Any IP address
 	ip := "0.0.0.0"
 
-	return Config{port, &ip, config.Identity{}}
+	return ConfigForSybil(&ip, port, privateKey)
 }
 
 func ConfigForRandomNode(port int) Config {
