@@ -241,7 +241,8 @@ func BeginSybilPositionOptimization(optimizationFlags Config) ([]Result, error) 
 			startMaximumCpl, 0, closestReliableNodeCpl}
 		sybilPositionOptimization(optimizationFlags, position, nodesPerCpl)
 	}
-	fmt.Println("Results:", resultCount)
+	// Number of results:
+	// fmt.Println("Results:", resultCount)
 
 	if len(topScores) != 0 {
 		for i, score := range topScores {
