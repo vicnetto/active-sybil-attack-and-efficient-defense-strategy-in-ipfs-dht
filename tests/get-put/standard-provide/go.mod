@@ -1,4 +1,4 @@
-module standard-put
+module standard-provide
 
 go 1.23.2
 
