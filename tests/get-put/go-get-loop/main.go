@@ -121,8 +121,8 @@ func printStats(status CidStatus, numberOfTests int) {
 
 func verifyIfFileIsEclipsed(ctx context.Context, clientNode *core.IpfsNode, cid gocid.Cid, status CidStatus) CidStatus {
 	for {
-		ctxTimeout, ctxTimeoutCancel := context.WithTimeout(ctx, 5*time.Second)
-
+		ctxTimeout, ctxTimeoutCancel := context.WithTimeout(ctx, 30*time.Second)
+		ch := clientNode.DHT.WAN.FindProvidersAsync(ctxTimeout, cid, 10)
 		// Get the providers in a loop until context is ended.
 		for range clientNode.DHT.WAN.FindProvidersAsync(ctxTimeout, cid, 10) {
 		}

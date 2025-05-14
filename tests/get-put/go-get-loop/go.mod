@@ -1,4 +1,4 @@
-module go-get-loop-specify-pid
+module go-get-loop
 
 go 1.23.2
 
