@@ -5,11 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"github.com/ipfs/kubo/core"
-	"github.com/libp2p/go-libp2p-kad-dht/qpeerset"
+	srutils "github.com/libp2p/go-libp2p-kad-dht/sr/utils"
 	"github.com/vicnetto/active-sybil-attack/logger"
 	ipfspeer "github.com/vicnetto/active-sybil-attack/node/peer"
 	"github.com/vicnetto/active-sybil-attack/utils/k-closest-to-file/interact"
-	"github.com/vicnetto/active-sybil-attack/utils/xor-distance/mitigation"
 	_ "net/http/pprof"
 	"os"
 	"time"
@@ -18,27 +17,33 @@ import (
 var log = logger.InitializeLogger()
 
 type Flags struct {
-	quantity int
+	quantity   int
+	port       int
+	privateKey string
 }
 
 func help() func() {
 	return func() {
 		fmt.Println("\nUsage:", os.Args[0], "[flags]:")
 		fmt.Println("  -quantity <string>  -- Quantity of DHT lookups to perform")
+		fmt.Println("  -port <int>          -- Port of the IPFS node. (default: any valid port)")
+		fmt.Println("  -privateKey <string> -- Private key of the IPFS node. (default: random node)")
 	}
 }
 
 func treatFlags() Flags {
-	flags := Flags{}
+	flagConfig := Flags{}
 
-	flag.IntVar(&flags.quantity, "quantity", 0, "")
+	flag.IntVar(&flagConfig.quantity, "quantity", 0, "")
+	flag.IntVar(&flagConfig.port, "port", 0, "")
+	flag.StringVar(&flagConfig.privateKey, "privateKey", "", "")
 
 	flag.Usage = help()
 	flag.Parse()
 
 	missingFlag := false
 
-	if flags.quantity == 0 {
+	if flagConfig.quantity == 0 {
 		log.Info.Println("error: flag quantity missing.")
 		missingFlag = true
 	}
@@ -48,17 +53,23 @@ func treatFlags() Flags {
 		os.Exit(1)
 	}
 
-	return flags
+	return flagConfig
 }
 
 func main() {
-	flags := treatFlags()
+	flagConfig := treatFlags()
 
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	defer ctxCancel()
 
-	clientConfig := ipfspeer.ConfigForNormalClient(0)
-	_, clientNode, err := ipfspeer.SpawnEphemeral(ctx, clientConfig)
+	var peerConfig ipfspeer.Config
+	if len(flagConfig.privateKey) != 0 {
+		peerConfig = ipfspeer.ConfigForSpecificNode(flagConfig.port, flagConfig.privateKey)
+	} else {
+		peerConfig = ipfspeer.ConfigForRandomNode(flagConfig.port)
+	}
+
+	_, clientNode, err := ipfspeer.SpawnEphemeral(ctx, peerConfig)
 	defer func(clientNode *core.IpfsNode) {
 		err := clientNode.Close()
 		if err != nil {
@@ -73,12 +84,11 @@ func main() {
 	log.Info.Printf("Sleeping for 10 seconds...")
 	time.Sleep(10 * time.Second)
 
-	for currentTest := 0; currentTest < flags.quantity; currentTest++ {
+	for currentTest := 0; currentTest < flagConfig.quantity; currentTest++ {
 		log.Info.Printf("%d) Performing random lookups to verify the average distances calculated:", currentTest+1)
-		cidDecode, lookupResult := mitigation.PerformRandomLookupReturningQueriedPeersWithFullInformation(ctx, clientNode)
-		peers := lookupResult.AllPeersContacted.GetClosestInStates(qpeerset.PeerHeard, qpeerset.PeerWaiting, qpeerset.PeerQueried)
+		cidDecode, allQueriedPeers := srutils.PerformRandomLookupReturningAllQueriedPeers(ctx, clientNode)
 
-		err := interact.StoreDHTLookupToFile(cidDecode, peers, "output")
+		err := interact.StoreDHTLookupToFile(cidDecode, allQueriedPeers, "output")
 		if err != nil {
 			log.Error.Println("Error while storing DHT lookup to file:", err)
 			return

@@ -1,22 +1,22 @@
 module github.com/vicnetto/active-sybil-attack/utils/k-closest-to-file
 
-go 1.23.4
+go 1.24.3
 
-// Use the XOR branch
-replace github.com/libp2p/go-libp2p-kad-dht => github.com/vicnetto/go-libp2p-kad-dht v0.28.3-0.20250428125353-a0a21809acc1
+// Branch: sr-dht-store
+// replace github.com/libp2p/go-libp2p-kad-dht => github.com/vicnetto/go-libp2p-kad-dht sr-dht-store
+// replace github.com/libp2p/go-libp2p-kad-dht/sr/utils => github.com/vicnetto/go-libp2p-kad-dht/sr/utils sr-dht-store
+replace github.com/libp2p/go-libp2p-kad-dht => github.com/vicnetto/go-libp2p-kad-dht v0.28.3-0.20250514163720-612bd6b45ff1
 
-replace github.com/vicnetto/active-sybil-attack/utils/xor-distance => ../../utils/xor-distance
+replace github.com/libp2p/go-libp2p-kad-dht/sr/utils => github.com/vicnetto/go-libp2p-kad-dht/sr/utils v0.0.0-20250514163720-612bd6b45ff1
+
+replace github.com/vicnetto/active-sybil-attack/utils/k-closest-to-file/interact => ./interact/
 
 require (
-	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/kubo v0.33.0
-	github.com/libp2p/go-libp2p v0.38.2
-	github.com/libp2p/go-libp2p-kad-dht v0.28.2
-	github.com/libp2p/go-libp2p-kbucket v0.6.4
-	github.com/multiformats/go-multihash v0.2.3
-	github.com/vicnetto/active-sybil-attack/logger v0.0.0-20250120102219-254a63da6821
-	github.com/vicnetto/active-sybil-attack/node/peer v0.0.0-20250120102219-254a63da6821
-	github.com/vicnetto/active-sybil-attack/utils/xor-distance v0.0.0-00010101000000-000000000000
+	github.com/libp2p/go-libp2p-kad-dht/sr/utils v0.0.0-00010101000000-000000000000
+	github.com/vicnetto/active-sybil-attack/logger v0.0.0-20250514150718-741de863fcd5
+	github.com/vicnetto/active-sybil-attack/node/peer v0.0.0-20250514150718-741de863fcd5
+	github.com/vicnetto/active-sybil-attack/utils/k-closest-to-file/interact v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -89,6 +89,7 @@ require (
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
 	github.com/ipfs/go-block-format v0.2.0 // indirect
 	github.com/ipfs/go-blockservice v0.5.2 // indirect
+	github.com/ipfs/go-cid v0.4.1 // indirect
 	github.com/ipfs/go-cidutil v0.1.0 // indirect
 	github.com/ipfs/go-datastore v0.6.0 // indirect
 	github.com/ipfs/go-ds-badger v0.3.0 // indirect
@@ -133,7 +134,10 @@ require (
 	github.com/libp2p/go-cidranger v1.1.0 // indirect
 	github.com/libp2p/go-doh-resolver v0.5.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.2.0 // indirect
+	github.com/libp2p/go-libp2p v0.38.2 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
+	github.com/libp2p/go-libp2p-kad-dht v0.28.2 // indirect
+	github.com/libp2p/go-libp2p-kbucket v0.6.4 // indirect
 	github.com/libp2p/go-libp2p-pubsub v0.12.0 // indirect
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0 // indirect
 	github.com/libp2p/go-libp2p-record v0.2.0 // indirect
@@ -160,6 +164,7 @@ require (
 	github.com/multiformats/go-multiaddr-fmt v0.1.0 // indirect
 	github.com/multiformats/go-multibase v0.2.0 // indirect
 	github.com/multiformats/go-multicodec v0.9.0 // indirect
+	github.com/multiformats/go-multihash v0.2.3 // indirect
 	github.com/multiformats/go-multistream v0.6.0 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
