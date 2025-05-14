@@ -4,21 +4,63 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	gocid "github.com/ipfs/go-cid"
 	"github.com/ipfs/kubo/core"
-	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/vicnetto/active-sybil-attack/logger"
 	ipfspeer "github.com/vicnetto/active-sybil-attack/node/peer"
 	"github.com/vicnetto/active-sybil-attack/utils/k-closest-cpl/cpl"
 	"github.com/vicnetto/active-sybil-attack/utils/optimize-sybils-kl/optimization"
 	"github.com/vicnetto/active-sybil-attack/utils/optimize-sybils-kl/probability"
 	"os"
-	"time"
 )
 
 const KeySize = 256
 
+var log = logger.InitializeLogger()
+
 type FlagConfig struct {
-	tests int
+	tests          int
+	maxKl          float64
+	closestIsSybil bool
+	port           int
+	privateKey     string
+}
+
+func help() func() {
+	return func() {
+		fmt.Println("Usage of", os.Args[0], "[flags]:")
+		fmt.Println("  -tests <int>         -- Number of tests")
+		fmt.Println("  -maxKl <float>       -- Optimization max KL (default: 0.85)")
+		fmt.Println("  -closestIsSybil      -- Closest node must be a Sybil (default: false)")
+		fmt.Println("  -port <int>          -- Port of the IPFS node. (default: any valid port)")
+		fmt.Println("  -privateKey <string> -- Private key of the IPFS node. (default: random node)")
+	}
+}
+
+func treatFlags() *FlagConfig {
+	flagConfig := FlagConfig{}
+	flag.Usage = help()
+
+	flag.IntVar(&flagConfig.tests, "tests", 0, "")
+	flag.Float64Var(&flagConfig.maxKl, "maxKl", 0.85, "")
+	flag.BoolVar(&flagConfig.closestIsSybil, "closestIsSybil", false, "")
+	flag.IntVar(&flagConfig.port, "port", 0, "")
+	flag.StringVar(&flagConfig.privateKey, "privateKey", "", "")
+	flag.Parse()
+
+	missingFlag := false
+
+	if flagConfig.tests == 0 {
+		fmt.Println("error: flag tests missing.")
+		missingFlag = true
+	}
+
+	if missingFlag {
+		fmt.Println()
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	return &flagConfig
 }
 
 func isClosestIsASybil(result optimization.Result) bool {
@@ -41,67 +83,30 @@ func isClosestIsASybil(result optimization.Result) bool {
 	}
 }
 
-func generatePidAndGetClosest(ctx context.Context, node *core.IpfsNode) (gocid.Cid, []string) {
-	var cid gocid.Cid
-	var peers []peer.ID
+func configureOptimization(inCpl []int, networkSize int, config FlagConfig) (optimization.Config, error) {
+	log.Info.Println("Positioning sybils in the following distribution:")
+	PrintUsefulCpl(inCpl)
 
-	for {
-		// Generate random peer using the Kubo function
-		randomPid, err := node.DHT.WAN.RoutingTable().GenRandPeerID(0)
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-
-		cid, err = gocid.Decode(randomPid.String())
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-		fmt.Println("PID:", cid.String())
-		fmt.Printf("Getting closest peers to %s...\n", cid.String())
-
-		timeoutCtx, cancelTimeoutCtx := context.WithTimeout(ctx, 30*time.Second)
-
-		// Get the closest peers to verify the CPL of each one
-		peers, err = node.DHT.WAN.GetClosestPeers(timeoutCtx, string(cid.Hash()))
-		if err != nil {
-			fmt.Println(err)
-			cancelTimeoutCtx()
-			continue
-		}
-
-		cancelTimeoutCtx()
-		break
-	}
-
-	var peersAsString []string
-	for _, peerId := range peers {
-		peersAsString = append(peersAsString, peerId.String())
-	}
-
-	return cid, peersAsString
-}
-
-func optimizeSybilPositioning(inCpl []int) (optimization.Result, int, error) {
 	optimizationConfig, err := optimization.DefaultConfig(inCpl)
 	if err != nil {
-		fmt.Println(err)
-		return optimization.Result{}, 0, err
+		return optimization.Config{}, err
 	}
 
-	optimizationConfig.MaxKl = 0.85
+	optimizationConfig.MaxKl = config.maxKl
+	optimizationConfig.ClosestNodeIsSybil = config.closestIsSybil
+	optimizationConfig.NetworkSize = networkSize
 
-	fmt.Println("\nPositioning sybils in the following distribution:")
-	PrintUsefulCpl(optimizationConfig.NodesPerCpl)
+	return optimizationConfig, nil
+}
 
-	positionOptimization, err := optimization.BeginSybilPositionOptimization(optimizationConfig)
+func optimizeSybilPositioning(config optimization.Config) (optimization.Result, int, error) {
+	positionOptimization, err := optimization.BeginSybilPositionOptimization(config)
 	if err != nil {
-		fmt.Println(err)
+		log.Error.Println(err)
 		return optimization.Result{}, 0, err
 	}
 
-	fmt.Println("\nSybils positioned:")
+	log.Info.Println("Sybils positioned:")
 	PrintUsefulCpl(positionOptimization[0].SybilsPerCpl)
 	fmt.Println()
 
@@ -113,21 +118,34 @@ func optimizeSybilPositioning(inCpl []int) (optimization.Result, int, error) {
 	return positionOptimization[0], sybils, nil
 }
 
-func help() func() {
-	return func() {
-		fmt.Println("Usage of", os.Args[0], "[flags]:")
-		fmt.Println("	-tests <int>  -- Number of tests (default: 5)")
+func estimateNetworkSize(ctx context.Context, node *core.IpfsNode) (int32, error) {
+	var networkSize int32
+	var networkSizeErr error
+
+	for {
+		networkSize, networkSizeErr = node.DHT.WAN.NsEstimator.NetworkSize()
+
+		if networkSizeErr != nil {
+			err := node.DHT.WAN.GatherNetsizeData(ctx)
+			if err != nil {
+				log.Error.Printf("  %s.. retrying!", err)
+				node.Close()
+				return 0, err
+			}
+
+			networkSize, networkSizeErr = node.DHT.WAN.NsEstimator.NetworkSize()
+			if networkSizeErr != nil {
+				log.Error.Println("Network Size Error:", networkSizeErr)
+				node.Close()
+				return 0, err
+			}
+		}
+
+		break
 	}
-}
 
-func treatFlags() *FlagConfig {
-	flagConfig := FlagConfig{}
-	flag.Usage = help()
-
-	flag.IntVar(&flagConfig.tests, "tests", 5, "")
-	flag.Parse()
-
-	return &flagConfig
+	log.Info.Println("Network size:", networkSize)
+	return networkSize, nil
 }
 
 func main() {
@@ -135,62 +153,87 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	config := ipfspeer.ConfigForNormalClient(8080)
-	_, node, err := ipfspeer.SpawnEphemeral(ctx, config)
-	if err != nil {
-		panic(err)
-	}
-
 	var lowestSybil, highestSybil int
 	lowestSybil = probability.K
 
-	var score, kl []float64
-	var scoreSum, klSum float64
+	var score, kl, initialKl []float64
+	var scoreSum, klSum, initialKlSum float64
 
-	var sybil []int
-	var sybilSum int
+	var sybil, networkSize []int
+	var sybilSum, networkSizeSum int
 
 	var closestIsSybil []bool
 	var closestIsSybilSum int
 
 	var allNodesPerCpl [KeySize]int
 
-	fmt.Printf("Running %d tests:\n", flagConfig.tests)
+	log.Info.Printf("Running %d optimizations:\n", flagConfig.tests)
 
-	fmt.Println()
 	for i := 1; i <= flagConfig.tests; i++ {
-		fmt.Printf("%d)\n", i)
+		log.Info.Printf("%d) Test %d\n", i, i)
 
-		decode, peersAsString := generatePidAndGetClosest(ctx, node)
-		inCpl := cpl.CountInCpl(decode, peersAsString)
+		var peerConfig ipfspeer.Config
+		if len(flagConfig.privateKey) != 0 {
+			peerConfig = ipfspeer.ConfigForSpecificNode(flagConfig.port, flagConfig.privateKey)
+		} else {
+			peerConfig = ipfspeer.ConfigForRandomNode(flagConfig.port)
+		}
+
+		_, node, err := ipfspeer.SpawnEphemeral(ctx, peerConfig)
+		if err != nil {
+			panic(err)
+		}
+		log.Info.Println("Peer is UP:", node.Identity.String())
+
+		netSize, err := estimateNetworkSize(ctx, node)
+		if err != nil {
+			i--
+			continue
+		}
+		node.DHT.WAN.Detector.UpdateIdealDistFromNetsize(int(netSize))
+
+		cid, closestAsString := cpl.GeneratePidAndGetClosestAsString(ctx, node)
+		perCpl := cpl.CountInCpl(cid, closestAsString)
+
+		klBeforeOptimization := node.DHT.WAN.Detector.ComputeKLFromCounts(perCpl)
+		log.Info.Printf("Initial distribution KL: %f", klBeforeOptimization)
 
 		nodes := 0
 		for i := 0; i < KeySize; i++ {
-			nodes += inCpl[i]
-			allNodesPerCpl[i] += inCpl[i]
+			nodes += perCpl[i]
+			allNodesPerCpl[i] += perCpl[i]
 
 			if nodes == 20 {
 				break
 			}
 		}
 
-		result, sybils, err := optimizeSybilPositioning(inCpl)
+		optimizationConfig, err := configureOptimization(perCpl, int(netSize), *flagConfig)
 		if err != nil {
-			fmt.Println(err)
+			panic(err)
+		}
+
+		result, sybils, err := optimizeSybilPositioning(optimizationConfig)
+		if err != nil {
+			log.Error.Println(err)
 			i--
 			continue
 		}
 
 		closestIsSybilBool := isClosestIsASybil(result)
 
+		networkSize = append(networkSize, int(netSize))
 		score = append(score, result.Score)
 		kl = append(kl, result.Kl)
+		initialKl = append(initialKl, klBeforeOptimization)
 		sybil = append(sybil, sybils)
 		closestIsSybil = append(closestIsSybil, closestIsSybilBool)
 
 		scoreSum += score[i-1]
 		klSum += kl[i-1]
+		initialKlSum += initialKl[i-1]
 		sybilSum += sybil[i-1]
+		networkSizeSum += networkSize[i-1]
 		if closestIsSybilBool {
 			closestIsSybilSum += 1
 		}
@@ -203,35 +246,38 @@ func main() {
 			highestSybil = sybils
 		}
 
-		fmt.Printf("Score (Score mean): %f (%f)\n", score[i-1], scoreSum/float64(i))
-		fmt.Printf("Kl (Kl mean): %f (%f)\n", kl[i-1], klSum/float64(i))
-		fmt.Printf("Sybils (Sybils mean): %d (%f)\n", sybil[i-1], float64(sybilSum)/float64(i))
-		fmt.Printf("Closest is sybil (CIS mean): %t (%d%%)\n", closestIsSybilBool,
+		log.Info.Printf("Score (Score mean): %f (%f)\n", score[i-1], scoreSum/float64(i))
+		log.Info.Printf("Initial Kl (Initial Kl mean): %f (%f)\n", initialKl[i-1], initialKlSum/float64(i))
+		log.Info.Printf("Kl (Kl mean): %f (%f)\n", kl[i-1], klSum/float64(i))
+		log.Info.Printf("Sybils (Sybils mean): %d (%f)\n", sybil[i-1], float64(sybilSum)/float64(i))
+		log.Info.Printf("Network Size (NS mean): %d (%f)\n", networkSize[i-1], float64(networkSizeSum)/float64(i))
+		log.Info.Printf("Closest is sybil (CIS mean): %t (%d%%)\n", closestIsSybilBool,
 			int(float64(closestIsSybilSum)/float64(i)*100))
 
-		fmt.Println()
+		if err := node.Close(); err != nil {
+			panic(err)
+		}
 	}
 
-	fmt.Printf("> Final results in %d tests:\n", flagConfig.tests)
-	fmt.Printf("Score mean: %f\n", scoreSum/float64(flagConfig.tests))
+	fmt.Println()
 
-	fmt.Printf("Kl mean: %f\n", klSum/float64(flagConfig.tests))
-	fmt.Printf("Closest is sybil percentage: %d%%\n", int(float64(closestIsSybilSum)/float64(flagConfig.tests)*100))
+	log.Info.Printf("> Final results in %d tests:\n", flagConfig.tests)
+	log.Info.Printf("Score mean: %f\n", scoreSum/float64(flagConfig.tests))
+
+	log.Info.Printf("Initial Kl mean: %f\n", initialKlSum/float64(flagConfig.tests))
+	log.Info.Printf("Kl mean: %f\n", klSum/float64(flagConfig.tests))
+	log.Info.Printf("Closest is sybil percentage: %d%%\n", int(float64(closestIsSybilSum)/float64(flagConfig.tests)*100))
 
 	PrintUsefulCpl(allNodesPerCpl)
-	fmt.Printf("*- Total nodes: %d\n", flagConfig.tests*20)
+	log.Info.Printf("*- Total nodes: %d\n", flagConfig.tests*20)
 
-	fmt.Printf("Sybils mean: %f\n", float64(sybilSum)/float64(flagConfig.tests))
-	fmt.Printf("Highest sybil quantity: %d\n", highestSybil)
-	fmt.Printf("Lowest sybil quantity: %d\n\n", lowestSybil)
-	fmt.Printf("Score, KL, Sybil, ClosestIsSybil\n")
-	printArraysAsCsv(score, kl, sybil, closestIsSybil)
+	log.Info.Printf("Sybils mean: %f\n", float64(sybilSum)/float64(flagConfig.tests))
+	log.Info.Printf("Network Size mean: %f\n", float64(networkSizeSum)/float64(flagConfig.tests))
+	log.Info.Printf("Highest sybil quantity: %d\n", highestSybil)
+	log.Info.Printf("Lowest sybil quantity: %d\n\n", lowestSybil)
 
-	fmt.Printf("\nExiting...\n")
+	fmt.Printf("Score;InitialKL;KL;Sybil;NetworkSize;ClosestIsSybil\n")
+	printArraysAsCsv(score, initialKl, kl, sybil, networkSize, closestIsSybil)
 
 	cancel()
-
-	if err := node.Close(); err != nil {
-		panic(err)
-	}
 }

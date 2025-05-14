@@ -63,7 +63,7 @@ func printArraysAsCsv(input ...interface{}) {
 				continue
 			}
 
-			fmt.Print(", ", value)
+			fmt.Print(";", value)
 		}
 
 		fmt.Println()
