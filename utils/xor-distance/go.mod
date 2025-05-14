@@ -15,9 +15,9 @@ require (
 	github.com/libp2p/go-libp2p-kbucket v0.6.4
 	github.com/multiformats/go-base32 v0.1.0
 	github.com/multiformats/go-multihash v0.2.3
-	github.com/vicnetto/active-sybil-attack/logger v0.0.0-20250120102219-254a63da6821
-	github.com/vicnetto/active-sybil-attack/node/peer v0.0.0-20250120102219-254a63da6821
-	github.com/vicnetto/active-sybil-attack/utils/k-closest-to-file v0.0.0-20250428212347-d6e09fa5576a
+	github.com/vicnetto/active-sybil-attack/logger v0.0.0-20250514144647-4c4c84b912bc
+	github.com/vicnetto/active-sybil-attack/node/peer v0.0.0-20250514144647-4c4c84b912bc
+	github.com/vicnetto/active-sybil-attack/utils/k-closest-to-file v0.0.0-20250514144647-4c4c84b912bc
 )
 
 require (

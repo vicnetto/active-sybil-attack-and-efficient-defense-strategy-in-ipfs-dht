@@ -94,7 +94,7 @@ func CalculateAverageDistancePerPeerQuantity(ctx context.Context, maxPeerQuantit
 
 	var alreadyQueriedPeers []peer.ID
 	for peerQuantity := 0; peerQuantity < maxPeerQuantity; peerQuantity++ {
-		peerConfig := ipfspeer.ConfigForNormalClient(8080)
+		peerConfig := ipfspeer.ConfigForRandomNode(0)
 		_, clientNode, err := ipfspeer.SpawnEphemeral(ctx, peerConfig)
 		if err != nil {
 			log.Error.Println("Error instantiating the clientNode:", err.Error())
