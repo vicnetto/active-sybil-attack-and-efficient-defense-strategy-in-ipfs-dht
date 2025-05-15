@@ -797,10 +797,10 @@ github.com/vicnetto/active-sybil-attack/node/peer v0.0.0-20250514165646-758508fd
 github.com/vicnetto/active-sybil-attack/node/peer v0.0.0-20250514165646-758508fd58a4/go.mod h1:FEyPKaBWCIDsIRwS3RFzgrvjQvuoDHWOADCBDSv/vRs=
 github.com/vicnetto/active-sybil-attack/utils/k-closest-to-file/interact v0.0.0-20250514183903-e9513d33f35d h1:KPN/3vfmm1UkRa0JJGq7p0FCcyz3yOLaLdpFjuJeXYI=
 github.com/vicnetto/active-sybil-attack/utils/k-closest-to-file/interact v0.0.0-20250514183903-e9513d33f35d/go.mod h1:/yHNF1RrAwSX3oco90ISiIriad7x+NA02gcqe/Q3DAw=
-github.com/vicnetto/go-libp2p-kad-dht v0.28.3-0.20250514184142-f32da653f8dc h1:VOr2dUeAKxZ9s3d6JZ/fMfyjpVz1SQhN9WGav8JdSdQ=
-github.com/vicnetto/go-libp2p-kad-dht v0.28.3-0.20250514184142-f32da653f8dc/go.mod h1:r+0d8G8Z9/VaiRBNEbv/Bc/arBx3q+Z6T6b8mWIhqk8=
-github.com/vicnetto/go-libp2p-kad-dht/sr/utils v0.0.0-20250514184142-f32da653f8dc h1:EvDsP39he/1Yi2AUS5ktvIOd0JenLj983oX55SO7wYQ=
-github.com/vicnetto/go-libp2p-kad-dht/sr/utils v0.0.0-20250514184142-f32da653f8dc/go.mod h1:XdrbKFlKV/pvgQ4QAdDiq6pxraECEMMVZD5fqxKupWY=
+github.com/vicnetto/go-libp2p-kad-dht v0.28.3-0.20250515135611-cee057da7ba3 h1:B2JDtk0cGJunKuNJTknVBSVAIiilqP3TwWmqQgHDXUI=
+github.com/vicnetto/go-libp2p-kad-dht v0.28.3-0.20250515135611-cee057da7ba3/go.mod h1:r+0d8G8Z9/VaiRBNEbv/Bc/arBx3q+Z6T6b8mWIhqk8=
+github.com/vicnetto/go-libp2p-kad-dht/sr/utils v0.0.0-20250515135611-cee057da7ba3 h1:NMWo8piuPPrkq7i3YFpMlvwf5OjLbD2S2Qcq1YiRYy8=
+github.com/vicnetto/go-libp2p-kad-dht/sr/utils v0.0.0-20250515135611-cee057da7ba3/go.mod h1:XdrbKFlKV/pvgQ4QAdDiq6pxraECEMMVZD5fqxKupWY=
 github.com/wangjia184/sortedset v0.0.0-20160527075905-f5d03557ba30/go.mod h1:YkocrP2K2tcw938x9gCOmT5G5eCD6jsTz0SZuyAqwIE=
 github.com/warpfork/go-testmark v0.12.1 h1:rMgCpJfwy1sJ50x0M0NgyphxYYPMOODIJHhsXyEHU0s=
 github.com/warpfork/go-testmark v0.12.1/go.mod h1:kHwy7wfvGSPh1rQJYKayD4AbtNaeyZdcGi9tNJTaa5Y=

@@ -3,9 +3,11 @@ module optimize-alpha
 go 1.24.3
 
 // Branch: sr-dht-store
-replace github.com/libp2p/go-libp2p-kad-dht => github.com/vicnetto/go-libp2p-kad-dht v0.28.3-0.20250514184142-f32da653f8dc
+// replace github.com/libp2p/go-libp2p-kad-dht => github.com/vicnetto/go-libp2p-kad-dht sr-dht-store
+// replace github.com/libp2p/go-libp2p-kad-dht/sr/utils => github.com/vicnetto/go-libp2p-kad-dht/sr/utils sr-dht-store
+replace github.com/libp2p/go-libp2p-kad-dht => github.com/vicnetto/go-libp2p-kad-dht v0.28.3-0.20250515135611-cee057da7ba3
 
-replace github.com/libp2p/go-libp2p-kad-dht/sr/utils => github.com/vicnetto/go-libp2p-kad-dht/sr/utils v0.0.0-20250514184142-f32da653f8dc
+replace github.com/libp2p/go-libp2p-kad-dht/sr/utils => github.com/vicnetto/go-libp2p-kad-dht/sr/utils v0.0.0-20250515135611-cee057da7ba3
 
 require (
 	github.com/libp2p/go-libp2p v0.38.2

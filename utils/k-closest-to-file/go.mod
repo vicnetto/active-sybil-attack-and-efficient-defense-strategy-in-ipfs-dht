@@ -5,18 +5,18 @@ go 1.24.3
 // Branch: sr-dht-store
 // replace github.com/libp2p/go-libp2p-kad-dht => github.com/vicnetto/go-libp2p-kad-dht sr-dht-store
 // replace github.com/libp2p/go-libp2p-kad-dht/sr/utils => github.com/vicnetto/go-libp2p-kad-dht/sr/utils sr-dht-store
-replace github.com/libp2p/go-libp2p-kad-dht => github.com/vicnetto/go-libp2p-kad-dht v0.28.3-0.20250514163720-612bd6b45ff1
+replace github.com/libp2p/go-libp2p-kad-dht => github.com/vicnetto/go-libp2p-kad-dht v0.28.3-0.20250515135611-cee057da7ba3
 
-replace github.com/libp2p/go-libp2p-kad-dht/sr/utils => github.com/vicnetto/go-libp2p-kad-dht/sr/utils v0.0.0-20250514163720-612bd6b45ff1
+replace github.com/libp2p/go-libp2p-kad-dht/sr/utils => github.com/vicnetto/go-libp2p-kad-dht/sr/utils v0.0.0-20250515135611-cee057da7ba3
 
 replace github.com/vicnetto/active-sybil-attack/utils/k-closest-to-file/interact => ./interact/
 
 require (
 	github.com/ipfs/kubo v0.33.0
 	github.com/libp2p/go-libp2p-kad-dht/sr/utils v0.0.0-00010101000000-000000000000
-	github.com/vicnetto/active-sybil-attack/logger v0.0.0-20250514150718-741de863fcd5
-	github.com/vicnetto/active-sybil-attack/node/peer v0.0.0-20250514150718-741de863fcd5
-	github.com/vicnetto/active-sybil-attack/utils/k-closest-to-file/interact v0.0.0-00010101000000-000000000000
+	github.com/vicnetto/active-sybil-attack/logger v0.0.0-20250514165646-758508fd58a4
+	github.com/vicnetto/active-sybil-attack/node/peer v0.0.0-20250514165646-758508fd58a4
+	github.com/vicnetto/active-sybil-attack/utils/k-closest-to-file/interact v0.0.0-20250514183903-e9513d33f35d
 )
 
 require (
