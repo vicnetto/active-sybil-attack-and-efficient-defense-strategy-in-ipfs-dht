@@ -75,7 +75,7 @@ func ReadOtherPeersAsPeerInfo(filePath string, myPrivateKey string, ip string) [
 
 	var otherSybilsAddrInfo []peer.AddrInfo
 	scanner := bufio.NewScanner(file)
-	log.Info.Println("Other sybils:")
+	// log.Info.Println("Other sybils:")
 
 	for i := 0; scanner.Scan(); i++ {
 		line := scanner.Text()
@@ -100,12 +100,13 @@ func ReadOtherPeersAsPeerInfo(filePath string, myPrivateKey string, ip string) [
 			log.Error.Println("Failed when parsing MultiAddress:", cast)
 			panic(err)
 		}
+		// addrInfo.Addrs = nil
 
 		otherSybilsAddrInfo = append(otherSybilsAddrInfo, *addrInfo)
 
-		log.Info.Println(i, addrInfo)
+		// log.Info.Println(i, addrInfo)
 	}
-	fmt.Println()
+	// fmt.Println()
 
 	if err = scanner.Err(); err != nil {
 		log.Error.Println("Failed when reading file")
