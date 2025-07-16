@@ -95,7 +95,7 @@ func ReadAndFormatPeers(filePath string) []PeerInfo {
 
 	var peerInfo []PeerInfo
 	scanner := bufio.NewScanner(file)
-	fmt.Println("Identities:")
+	// fmt.Println("Identities:")
 
 	for i := 0; scanner.Scan(); i++ {
 		line := scanner.Text()
@@ -116,9 +116,9 @@ func ReadAndFormatPeers(filePath string) []PeerInfo {
 		info := PeerInfo{PeerID: peerId, PrivateKey: privateKey, Port: portInt}
 		peerInfo = append(peerInfo, info)
 
-		fmt.Println(i, info)
+		// fmt.Println(i, info)
 	}
-	fmt.Println()
+	// fmt.Println()
 
 	if err = scanner.Err(); err != nil {
 		fmt.Println("Failed when reading file")
