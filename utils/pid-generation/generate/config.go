@@ -82,7 +82,7 @@ func WritePeersToOutputFile(pidGenerateConfig PidGenerateConfig, peerId []string
 	fmt.Println("File ", pidGenerateConfig.OutFile, " created!")
 }
 
-func ReadPeerInfos(filePath string) []PeerInfo {
+func ReadAndFormatPeers(filePath string) []PeerInfo {
 	file, err := os.Open(filePath)
 	if err != nil {
 		panic(fmt.Errorf("failed to open file: %w", err))
