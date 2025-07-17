@@ -3,6 +3,8 @@ package generate
 import (
 	"bufio"
 	"fmt"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiformats/go-multiaddr"
 	"os"
 	"strconv"
 	"strings"
@@ -80,50 +82,54 @@ func WritePeersToOutputFile(pidGenerateConfig PidGenerateConfig, peerId []string
 	fmt.Println("File ", pidGenerateConfig.OutFile, " created!")
 }
 
-func ReadAndFormatPeers(filePath string) []PeerInfo {
+func ReadPeerInfos(filePath string) []PeerInfo {
 	file, err := os.Open(filePath)
 	if err != nil {
-		fmt.Println("Failed when opening file")
-		panic(err)
+		panic(fmt.Errorf("failed to open file: %w", err))
 	}
-	defer func(file *os.File) {
-		err = file.Close()
-		if err != nil {
-			panic(err)
-		}
-	}(file)
+	defer file.Close()
 
-	var peerInfo []PeerInfo
+	var peers []PeerInfo
 	scanner := bufio.NewScanner(file)
-	// fmt.Println("Identities:")
 
-	for i := 0; scanner.Scan(); i++ {
-		line := scanner.Text()
-		parts := strings.Fields(line)
+	for scanner.Scan() {
+		parts := strings.Fields(scanner.Text())
 		if len(parts) != 3 {
-			panic(fmt.Errorf("invalid line format. line should have the following format [privateKey publicKey port]"))
+			panic(fmt.Errorf("invalid line format: [privateKey publicKey port]"))
 		}
 
-		privateKey := parts[0]
-		peerId := parts[1]
-		port := parts[2]
-
-		portInt, err := strconv.Atoi(port)
+		portInt, err := strconv.Atoi(parts[2])
 		if err != nil {
-			panic(fmt.Errorf("invalid port. line should have the following format [privateKey publicKey port(int)]"))
+			panic(fmt.Errorf("invalid port: %w", err))
 		}
 
-		info := PeerInfo{PeerID: peerId, PrivateKey: privateKey, Port: portInt}
-		peerInfo = append(peerInfo, info)
-
-		// fmt.Println(i, info)
+		peers = append(peers, PeerInfo{
+			PrivateKey: parts[0],
+			PeerID:     parts[1],
+			Port:       portInt,
+		})
 	}
-	// fmt.Println()
-
-	if err = scanner.Err(); err != nil {
-		fmt.Println("Failed when reading file")
-		panic(err)
+	if err := scanner.Err(); err != nil {
+		panic(fmt.Errorf("error reading file: %w", err))
 	}
 
-	return peerInfo
+	return peers
+}
+
+func ReadAndFormatPeersAsAddrInfo(peers []PeerInfo, ip string) []peer.AddrInfo {
+	var peersMultiaddress []peer.AddrInfo
+
+	for _, peerInfo := range peers {
+		multiAddress := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", ip, peerInfo.Port, peerInfo.PeerID)
+		cast := multiaddr.StringCast(multiAddress)
+
+		addrInfo, err := peer.AddrInfoFromP2pAddr(cast)
+		if err != nil {
+			panic(fmt.Errorf("failed when parsing multiaddress: %s", cast))
+		}
+
+		peersMultiaddress = append(peersMultiaddress, *addrInfo)
+	}
+
+	return peersMultiaddress
 }
