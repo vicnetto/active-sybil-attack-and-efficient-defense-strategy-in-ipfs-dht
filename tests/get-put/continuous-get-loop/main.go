@@ -38,31 +38,34 @@ type Flags struct {
 	providerPid            string
 	quantityPerRestartTime []QuantityPerInterval
 	interval               time.Duration
+	startInterval          time.Duration
 	port                   int
 }
 
 func help() func() {
 	return func() {
 		log.Info.Println("\nUsage:", os.Args[0], "[flags]:")
-		log.Info.Println("  -privateKey <string>  -- Private key of the test node")
-		log.Info.Println("  -port <int>           -- Port to run the test node")
-		log.Info.Println("  -cidFilepath <string> -- CIDs to be tested for each test")
-		log.Info.Println("  -providerPid <string> -- Peer ID of the provider")
-		log.Info.Println("	-<int> <int>          -- Specify the quantity of nodes for each restart time. Multiple restart times can be specified.")
-		log.Info.Println("	                         Example: -120 2 -1440 2")
-		log.Info.Println("	                                  |      *-----> Restart time: 1440m, quantity of nodes: 2")
-		log.Info.Println("	                                  *------------> Restart time: 120m, quantity of nodes: 2")
+		log.Info.Println("  -privateKey    <string> -- Private key of the test node")
+		log.Info.Println("  -port          <int>    -- Port to run the test node")
+		log.Info.Println("  -cidFilepath   <string> -- CIDs to be tested for each test")
+		log.Info.Println("  -providerPid   <string> -- Peer ID of the provider")
+		log.Info.Println("  -startInterval <int>    -- Time interval between each Sybil (default: 2 minutes)")
+		log.Info.Println("	-<int>         <int>    -- Specify the quantity of nodes for each restart time. Multiple restart times can be specified.")
+		log.Info.Println("	                            Example: -120 2 -1440 2")
+		log.Info.Println("	                                     |      *-----> Restart time: 1440m, quantity of nodes: 2")
+		log.Info.Println("	                                     *------------> Restart time: 120m, quantity of nodes: 2")
 	}
 }
 
 func treatFlags() Flags {
 	flags := Flags{}
-	var interval int
+	var interval, startInterval int
 	flag.StringVar(&flags.getLoopPath, "getLoopPath", "", "")
 	flag.StringVar(&flags.peerFilepath, "peerFilepath", "", "")
 	flag.StringVar(&flags.cidFilepath, "cidFilepath", "", "")
 	flag.StringVar(&flags.providerPid, "providerPid", "", "")
 	flag.IntVar(&interval, "interval", 1, "")
+	flag.IntVar(&startInterval, "startInterval", 1, "")
 	flag.IntVar(&flags.port, "port", 10000, "")
 
 	var quantityPerRestartTime [maxIntervalInMinutes]int
@@ -104,6 +107,7 @@ func treatFlags() Flags {
 	}
 
 	flags.interval = time.Duration(interval) * time.Minute
+	flags.startInterval = time.Duration(startInterval) * time.Minute
 
 	if missingFlag {
 		flag.Usage()
@@ -203,11 +207,7 @@ func main() {
 
 	var manager []*Worker
 	currentPeer := 0
-	startInterval := time.Duration(2)*time.Minute + time.Duration(30)*time.Second
-	if int(startInterval.Minutes()) == 0 {
-		startInterval = time.Duration(1) * time.Minute
-	}
-	log.Info.Println("Interval between the launch of two peers:", startInterval)
+	log.Info.Println("Interval between the launch of two peers:", flags.startInterval)
 
 	for _, quantityPerRestart := range flags.quantityPerRestartTime {
 		quantity := quantityPerRestart.quantity
@@ -226,8 +226,8 @@ func main() {
 			manager = append(manager, pm)
 
 			go pm.run(peer.PeerID, int(quantityPerRestart.restartTime.Minutes()))
-			log.Info.Println("Sleeping for", startInterval, "to launch next test")
-			time.Sleep(startInterval)
+			log.Info.Println("Sleeping for", flags.startInterval, "to launch next test")
+			time.Sleep(flags.startInterval)
 
 			currentPeer++
 			quantity--
