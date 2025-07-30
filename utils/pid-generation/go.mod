@@ -6,6 +6,8 @@ require (
 	github.com/ipfs/go-cid v0.4.1
 	github.com/libp2p/go-libp2p v0.35.1
 	github.com/libp2p/go-libp2p-kbucket v0.6.3
+	github.com/multiformats/go-base32 v0.1.0
+	github.com/multiformats/go-multiaddr v0.13.0
 	github.com/multiformats/go-multihash v0.2.3
 )
 
@@ -22,9 +24,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
-	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
-	github.com/multiformats/go-multiaddr v0.13.0 // indirect
 	github.com/multiformats/go-multibase v0.2.0 // indirect
 	github.com/multiformats/go-multicodec v0.9.0 // indirect
 	github.com/multiformats/go-multistream v0.5.0 // indirect
