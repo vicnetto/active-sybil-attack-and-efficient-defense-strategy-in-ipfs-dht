@@ -6,8 +6,6 @@ go 1.23.2
 // replace github.com/libp2p/go-libp2p-kad-dht => github.com/vicnetto/go-libp2p-kad-dht sybil
 replace github.com/libp2p/go-libp2p-kad-dht => github.com/vicnetto/go-libp2p-kad-dht v0.28.3-0.20250428142950-d8dd9e43b7ab
 
-replace github.com/vicnetto/active-sybil-attack/node/peer => ../peer/
-
 require (
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/kubo v0.33.0
@@ -15,7 +13,8 @@ require (
 	github.com/libp2p/go-libp2p-kad-dht v0.28.2
 	github.com/multiformats/go-multiaddr v0.14.0
 	github.com/vicnetto/active-sybil-attack/logger v0.0.0-20250120102219-254a63da6821
-	github.com/vicnetto/active-sybil-attack/node/peer v0.0.0-00010101000000-000000000000
+	github.com/vicnetto/active-sybil-attack/node/peer v0.0.0-20250120102219-254a63da6821
+	github.com/vicnetto/active-sybil-attack/utils/pid-generation v0.0.0-20250730143539-4dd4b994584b
 )
 
 require (

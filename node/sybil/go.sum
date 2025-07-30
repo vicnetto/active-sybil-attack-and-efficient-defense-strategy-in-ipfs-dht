@@ -791,6 +791,10 @@ github.com/viant/assertly v0.4.8/go.mod h1:aGifi++jvCrUaklKEKT0BU95igDNaqkvz+49u
 github.com/viant/toolbox v0.24.0/go.mod h1:OxMCG57V0PXuIP2HNQrtJf2CjqdmbrOx5EkMILuUhzM=
 github.com/vicnetto/active-sybil-attack/logger v0.0.0-20250120102219-254a63da6821 h1:bM+4fukRdPlrmZhI1BsbgTzx6YukCLRKykgEcGysmbI=
 github.com/vicnetto/active-sybil-attack/logger v0.0.0-20250120102219-254a63da6821/go.mod h1:m4BOJenz/9in/bwnbfOhq3TryMj3/WLwaLx1zA3uaGw=
+github.com/vicnetto/active-sybil-attack/node/peer v0.0.0-20250120102219-254a63da6821 h1:grScweZUUkEpHJ1zJxFIpML5Olea8FUMFsU5bn2nWLI=
+github.com/vicnetto/active-sybil-attack/node/peer v0.0.0-20250120102219-254a63da6821/go.mod h1:FEyPKaBWCIDsIRwS3RFzgrvjQvuoDHWOADCBDSv/vRs=
+github.com/vicnetto/active-sybil-attack/utils/pid-generation v0.0.0-20250730143539-4dd4b994584b h1:FEcXoNGOcSzXy66x1DvCOfUPbFLILUGqyuDcMpP23ko=
+github.com/vicnetto/active-sybil-attack/utils/pid-generation v0.0.0-20250730143539-4dd4b994584b/go.mod h1:UlFt2996pbBKtiSUS5ADgHzW+mJsvylSqvGs7xqdNSU=
 github.com/vicnetto/go-libp2p-kad-dht v0.28.3-0.20250428142950-d8dd9e43b7ab h1:QgSbu39q0+qO6YDv7V4nb0BZWHTKRqDJ/d8BZaYIPgo=
 github.com/vicnetto/go-libp2p-kad-dht v0.28.3-0.20250428142950-d8dd9e43b7ab/go.mod h1:sUR/qh4p/5+YFXBtwOiCmIBeBA2YD94ttmL+Xk8+pTE=
 github.com/wangjia184/sortedset v0.0.0-20160527075905-f5d03557ba30/go.mod h1:YkocrP2K2tcw938x9gCOmT5G5eCD6jsTz0SZuyAqwIE=
