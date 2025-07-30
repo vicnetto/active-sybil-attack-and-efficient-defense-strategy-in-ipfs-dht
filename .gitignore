@@ -1,17 +1,88 @@
-.idea
-
 # Binary files
+
+## Nodes 
 node/sybil/sybil
+node/regular/kubo*
 node/hydra-sybil/hydra-booster
+
+## Utils
+utils/cid-generation/cid-generation
+utils/cpl-percentage-from-ns/cpl-percentage-from-ns
+utils/expected-nodes-per-cpl/expected-nodes-per-cpl
+utils/expected-nodes-per-cpl-from-ns/expected-nodes-per-cpl-from-ns
 utils/pid-generation/pid-generation
 utils/optimize-sybils-kl/optimize-sybils-kl
 utils/k-closest-cpl/k-closest-cpl
+utils/k-closest-to-file/k-closest-to-file
+utils/distribution-kl-from-ns/distribution-kl-from-ns
 
-# Hydra belly
-node/hydra-sybil/hydra-belly
+## Tests
+### get-put
+tests/get-put/continuous-get-loop/continuous-get-loop
+tests/get-put/continuous-get-loop/cid-list
+tests/get-put/continuous-get-loop/nodes
+tests/get-put/continuous-get-loop/providerPid
+tests/get-put/go-get-loop/go-get-loop
+tests/get-put/go-get-loop/cid-list*
+tests/get-put/go-get-loop/nodes
+tests/get-put/go-get-loop/privateKey
+tests/get-put/standard-provide/standard-provide
+### region-based-queries
+tests/region-based-queries/k-closest-cpl-average/k-closest-cpl-average
+tests/region-based-queries/distribution-kl-average/distribution-kl-average
+tests/region-based-queries/detection-and-rbq-provide/detection-and-rbq-provide
+tests/region-based-queries/network-size-estimator/network-size-estimator
+### sr-dht-store
+tests/sr-dht-store/sr-dht-store-provide/sr-dht-store-provide
+tests/sr-dht-store/optimize-alpha/optimize-alpha
+tests/sr-dht-store/over-time-average/over-time-average
+### sybil-positioning
+tests/sybil-positioning/sybil-optimization-average/sybil-optimization-average
+tests/sybil-positioning/pid-generation-speed/pid-generation-speed
+tests/sybil-positioning/score-strategy-comparison/score-strategy-comparison
+### query-x-lookup
+tests/query-x-lookup/k-farthest-cpl-query-comparison/k-farthest-cpl-query-comparison
+tests/query-x-lookup/k-farthest-cpl-query-comparison/cid
+tests/query-x-lookup/k-farthest-cpl-query-comparison/run-tests.sh
+tests/query-x-lookup/k-farthest-query-lookup-comparison/k-farthest-query-lookup-comparison
+tests/query-x-lookup/k-farthest-query-lookup-comparison/cid
+tests/query-x-lookup/k-farthest-query-lookup-comparison/run-tests.sh
+# Still testing/should ignore
+tests/query-x-lookup/query-closest-per-cpl
+tests/sr-dht-store/query-lookup-dk-estimation
+extra
+
+# Mitigation
+mitigation/pr-limitation/pr-limitation
+mitigation/disjoint-requests/disjoint-requests
+
+# WIP: Hydra belly
+node/hydra-sybil
+
+# Libs are now in separated repositories
+lib
 
 # Sybils-out file used to instanciate sybils
 sybils-out
 
 # File normally used to generate random cids
 file
+
+# Remove results
+*.prof
+*.out
+*.csv
+
+# Outfiles
+results
+out
+*output*
+log
+logs
+lock
+
+# Remove my commentaries about the folder
+info
+
+# Goland files
+.idea*
