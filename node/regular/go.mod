@@ -4,16 +4,18 @@ go 1.24
 
 toolchain go1.24.4
 
-replace github.com/vicnetto/active-sybil-attack/node/peer => ../peer/
-
-replace github.com/libp2p/go-libp2p-kad-dht => ../../go-libp2p-kad-dht/
+// replace github.com/libp2p/go-libp2p-kad-dht => github.com/vicnetto/go-libp2p-kad-dht consistent-k-closest
+replace github.com/libp2p/go-libp2p-kad-dht => github.com/vicnetto/go-libp2p-kad-dht v0.28.3-0.20250711155238-076616bb3501
 
 require (
+	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/kubo v0.33.0
 	github.com/libp2p/go-libp2p v0.38.2
+	github.com/libp2p/go-libp2p-kad-dht v0.28.2
+	github.com/multiformats/go-multiaddr v0.14.0
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/vicnetto/active-sybil-attack/logger v0.0.0-20250120102219-254a63da6821
-	github.com/vicnetto/active-sybil-attack/node/peer v0.0.0-00010101000000-000000000000
+	github.com/vicnetto/active-sybil-attack/node/peer v0.0.0-20250120102219-254a63da6821
 	github.com/vicnetto/active-sybil-attack/utils/pid-generation v0.0.0-20250120102219-254a63da6821
 )
 
@@ -86,7 +88,6 @@ require (
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
 	github.com/ipfs/go-block-format v0.2.0 // indirect
 	github.com/ipfs/go-blockservice v0.5.2 // indirect
-	github.com/ipfs/go-cid v0.4.1 // indirect
 	github.com/ipfs/go-cidutil v0.1.0 // indirect
 	github.com/ipfs/go-datastore v0.6.0 // indirect
 	github.com/ipfs/go-ds-badger v0.3.0 // indirect
@@ -132,7 +133,6 @@ require (
 	github.com/libp2p/go-doh-resolver v0.5.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.2.0 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
-	github.com/libp2p/go-libp2p-kad-dht v0.28.2 // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.6.4 // indirect
 	github.com/libp2p/go-libp2p-pubsub v0.12.0 // indirect
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0 // indirect
@@ -155,7 +155,6 @@ require (
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
-	github.com/multiformats/go-multiaddr v0.14.0 // indirect
 	github.com/multiformats/go-multiaddr-dns v0.4.1 // indirect
 	github.com/multiformats/go-multiaddr-fmt v0.1.0 // indirect
 	github.com/multiformats/go-multibase v0.2.0 // indirect
