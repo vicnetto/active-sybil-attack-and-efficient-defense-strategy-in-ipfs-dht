@@ -2,11 +2,11 @@ module go-get-loop
 
 go 1.23.2
 
-// Use pr-info branch
-// replace github.com/libp2p/go-libp2p-kad-dht => github.com/vicnetto/go-libp2p-kad-dht pr-info
-replace github.com/libp2p/go-libp2p-kad-dht => github.com/vicnetto/go-libp2p-kad-dht v0.28.3-0.20250429135215-2b2e88d0d3f0
+// replace github.com/libp2p/go-libp2p-kad-dht => github.com/vicnetto/go-libp2p-kad-dht pr-quantity
+// replace github.com/libp2p/go-libp2p => github.com/vicnetto/go-libp2p no-ip-filter
+replace github.com/libp2p/go-libp2p-kad-dht => github.com/vicnetto/go-libp2p-kad-dht v0.28.3-0.20250715163008-7dc69ef9855b
 
-// replace github.com/ipfs/kubo => ../../lib/updated/kubo
+replace github.com/libp2p/go-libp2p => github.com/vicnetto/go-libp2p v0.38.2-0.20250715141835-7f1dd08b26f5
 
 require (
 	github.com/gofrs/flock v0.12.1

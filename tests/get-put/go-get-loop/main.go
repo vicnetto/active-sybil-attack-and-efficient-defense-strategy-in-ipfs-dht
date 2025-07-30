@@ -35,8 +35,8 @@ type Flags struct {
 }
 
 type CidStatus struct {
-	filePrProviders     map[string]int
-	eclipsePrProviders  map[string]int
+	filePrProviders     map[peer.ID]int
+	eclipsePrProviders  map[peer.ID]int
 	eclipseCount        int
 	lastTestWasEclipsed bool
 	lastTest            time.Time
@@ -95,8 +95,8 @@ func initializeMapOfCidStatus(cidList []gocid.Cid) map[gocid.Cid]CidStatus {
 	var allCidStatus = map[gocid.Cid]CidStatus{}
 	for _, cid := range cidList {
 		status := CidStatus{}
-		status.filePrProviders = make(map[string]int)
-		status.eclipsePrProviders = make(map[string]int)
+		status.filePrProviders = make(map[peer.ID]int)
+		status.eclipsePrProviders = make(map[peer.ID]int)
 		allCidStatus[cid] = status
 	}
 
@@ -119,32 +119,32 @@ func printStats(status CidStatus, numberOfTests int) {
 	}
 }
 
-func verifyIfFileIsEclipsed(ctx context.Context, clientNode *core.IpfsNode, cid gocid.Cid, status CidStatus) CidStatus {
+func verifyIfFileIsEclipsed(ctx context.Context, clientNode *core.IpfsNode, cid gocid.Cid, status CidStatus, providerPid peer.ID) CidStatus {
 	for {
-		ctxTimeout, ctxTimeoutCancel := context.WithTimeout(ctx, 30*time.Second)
-		ch := clientNode.DHT.WAN.FindProvidersAsync(ctxTimeout, cid, 10)
-		// Get the providers in a loop until context is ended.
-		for range clientNode.DHT.WAN.FindProvidersAsync(ctxTimeout, cid, 10) {
+		ctxTimeout, ctxTimeoutCancel := context.WithTimeout(ctx, 10*time.Second)
+		// Get the providers in a loop until the context has finished. By setting to 0, we search for all the records
+		// as possible.
+		for range clientNode.DHT.WAN.FindProvidersAsync(ctxTimeout, cid, 0) {
 		}
-		found, prProvider := dht.GetLookupInformation()
 
-		if found {
+		_, ok := dht.RecordReceivedFrom[providerPid]
+		if ok {
 			log.Info.Println("File obtained!")
 
-			status.filePrProviders[prProvider]++
+			status.filePrProviders[""]++
 			status.lastTestWasEclipsed = false
 		} else {
-			if len(prProvider) == 0 {
+			if len(dht.RecordReceivedFrom) == 0 {
 				log.Info.Println("No provider found! Sleeping one minute before continuing...")
-				time.Sleep(1 * time.Minute)
-				ctxTimeoutCancel()
-				continue
+				// time.Sleep(1 * time.Minute)
+				// ctxTimeoutCancel()
+				// continue
 			}
 
 			status.eclipseCount++
 			status.lastTestWasEclipsed = true
-			log.Info.Println("File eclipsed!")
-			status.eclipsePrProviders[prProvider]++
+			log.Info.Printf("File eclipsed! Received %d records.", len(dht.RecordReceivedFrom))
+			status.eclipsePrProviders[""]++
 		}
 
 		status.lastTest = time.Now()
@@ -193,7 +193,6 @@ func decodeIdentifiers(flags Flags) ([]gocid.Cid, peer.ID, ipfspeer.Config) {
 		log.Error.Println("Error when decoding the provider PID.")
 		os.Exit(1)
 	}
-	dht.SetRealProvider(providerPid.String())
 
 	var clientConfig ipfspeer.Config
 	if len(flags.privateKey) != 0 {
@@ -302,8 +301,8 @@ func main() {
 	for current := 1; current <= flags.verifications; current++ {
 		for _, cid := range cidList {
 			log.Info.Printf("%s) Verifying CID\n", cid)
-			cidStatus[cid] = verifyIfFileIsEclipsed(ctx, clientNode, cid, cidStatus[cid])
-			dht.ResetPRProvider()
+			cidStatus[cid] = verifyIfFileIsEclipsed(ctx, clientNode, cid, cidStatus[cid], providerPid)
+			dht.RecordReceivedFrom = nil
 		}
 
 		log.Info.Printf("* Stats of %d tests >\n", current)
