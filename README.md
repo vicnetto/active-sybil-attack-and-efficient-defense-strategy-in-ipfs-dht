@@ -23,7 +23,7 @@ Our experiments were performed on a machine located at INRIA Nancy, equipped wit
 
 To compile the project, we recommend using **Go version 1.24.5** or later.
 
-## Project Structure
+## Structure
 
 The structure of our codebase is as follows:
 
