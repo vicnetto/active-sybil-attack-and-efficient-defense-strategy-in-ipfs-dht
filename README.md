@@ -27,18 +27,27 @@ To compile the project, we recommend using **Go version 1.24.5** or later.
 
 The structure of our codebase is as follows:
 
-- **db/**: Contains 100 random lookups and the peers contacted along each lookup path. This dataset was used across multiple tests to avoid repeated lookups when performing experiments.
-- **logger/**: Provides logging functions that are imported and used throughout all sub-projects.
-- **mitigation/**: Includes implementations of all proposed mitigation strategies:  
+- **[db/](./db/)**: Contains 100 random lookups and the peers contacted along each lookup path. This dataset was used across multiple tests to avoid repeated lookups when performing experiments.
+- [**logger/**](./logger/): Provides logging functions that are imported and used throughout all sub-projects.
+- [**mitigation/**](./mitigation/): Includes implementations of all proposed mitigation strategies:  
     - **SR-DHT-Store** (provider-side)  
-    - **PR Limitation** (client-side)  
-    - **Disjoint Requests** (client-side)
-- **node/**: Defines the types of nodes used in the experiments: regular and Sybil.  
+    - [**PR Limitation**](./mitigation/pr-limitation/) (client-side)  
+    - [**Disjoint Requests**](./mitigation/disjoint-requests/) (client-side)
+- [**node/**](./node/): Defines the types of nodes used in the experiments: regular and Sybil.  
     - Both rely on the node/peer project, which is used to instantiate an IPFS node using kubo-as-library.
-- **tests/**: Contains all experiments executed against the IPFS network.
-- **utils/**: The core sub-projects imported by `tests/` for performing the experiments.
+- [**tests/**](./tests/): Contains all experiments executed against the IPFS network.
+- [**utils/**](./utils/): The core sub-projects imported by `tests/` for performing the experiments.
 
 Each folder contains a `README.md` file with detailed information about its corresponding sub-projects.
+
+## Dependencies
+
+Some projects require modified versions of `go-libp2p-kad-dht` and `go-libp2p`. These can be found at the following paths:
+
+- `go-libp2p-kad-dht`: [https://github.com/vicnetto/go-libp2p-kad-dht](https://github.com/vicnetto/go-libp2p-kad-dht)
+- `go-libp2p`: [https://github.com/vicnetto/go-libp2p](https://github.com/vicnetto/go-libp2p)
+
+These repositories are organized into multiple branches, each implementing a specific functionality. Detailed explanations for each branch can be found in the corresponding `README.md` files.
 
 ## Installation and Configuration
 
