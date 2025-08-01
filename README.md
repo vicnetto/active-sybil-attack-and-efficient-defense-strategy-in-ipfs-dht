@@ -30,7 +30,7 @@ The structure of our codebase is as follows:
 - **[db/](./db/)**: Contains 100 random lookups and the peers contacted along each lookup path. This dataset was used across multiple tests to avoid repeated lookups when performing experiments.
 - [**logger/**](./logger/): Provides logging functions that are imported and used throughout all sub-projects.
 - [**mitigation/**](./mitigation/): Includes implementations of all proposed mitigation strategies:  
-    - **SR-DHT-Store** (provider-side)  
+    - [**SR-DHT-Store**](./mitigation/sr-dht-store/) (provider-side)  
     - [**PR Limitation**](./mitigation/pr-limitation/) (client-side)  
     - [**Disjoint Requests**](./mitigation/disjoint-requests/) (client-side)
 - [**node/**](./node/): Defines the types of nodes used in the experiments: regular and Sybil.  
