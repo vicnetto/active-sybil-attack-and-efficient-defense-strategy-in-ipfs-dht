@@ -1,8 +1,8 @@
-module sr-dht-store-provide
+module sr-dht-store
 
 go 1.24.2
 
-// Branch: sr-dht-store 
+// Branch: sr-dht-store
 // replace github.com/libp2p/go-libp2p-kad-dht => github.com/vicnetto/go-libp2p-kad-dht sr-dht-store
 replace github.com/libp2p/go-libp2p-kad-dht => github.com/vicnetto/go-libp2p-kad-dht v0.28.3-0.20250513164703-4f76f99432c3
 

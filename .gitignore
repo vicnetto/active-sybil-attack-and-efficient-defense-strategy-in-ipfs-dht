@@ -55,6 +55,7 @@ extra
 # Mitigation
 mitigation/pr-limitation/pr-limitation
 mitigation/disjoint-requests/disjoint-requests
+mitigation/sr-dht-store/sr-dht-store
 
 # WIP: Hydra belly
 node/hydra-sybil
